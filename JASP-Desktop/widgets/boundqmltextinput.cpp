@@ -157,6 +157,7 @@ void BoundQMLTextInput::bindTo(Option *option)
 		_option = _computedColumn = dynamic_cast<OptionComputedColumn *>(option);
 		_value	= QString::fromStdString(_computedColumn->value());
 		break;
+
 	case TextInputType::FormulaType:
 		_formula = dynamic_cast<OptionTerm *>(option);
 		if (!_formula)
@@ -210,6 +211,7 @@ Option *BoundQMLTextInput::createOption()
 	}
 
 	_value = getItemProperty("value").toString();
+
 	if(_inputType != TextInputType::FormulaType)
 		_setOptionValue(option, _value);
 	else
@@ -217,7 +219,7 @@ Option *BoundQMLTextInput::createOption()
 		if(_formula != option)
 			_formula = dynamic_cast<OptionTerm*>(option);
 
-		_setFormulaOptions(fq(_value), true);
+		_setFormulaOptions(fq(_value), fq(getItemProperty("defaultValue").toString()));
 	}
 	return option;
 }
@@ -284,33 +286,37 @@ void BoundQMLTextInput::rScriptDoneHandler(const QString &result)
 	bool succes;
 	double val = result.toDouble(&succes);
 
-	if (!succes)
-		showControlErrorTemporary("The expression did not return a number.");
-	else
-		succes = _formulaResultInBounds(val);
+	if (!succes)	showControlError("The expression did not return a number.");
+	else			succes = _formulaResultInBounds(val);
 
-	if (succes) {
-		_item->setProperty("hasScriptError", false);
+	if (succes)		_setFormulaValidated();
 
-	} else {
-		_item->setProperty("hasScriptError", true);
-		_item->setProperty("infoText", result);
-	}
-	_setFormulaValidated(succes);
+	_item->setProperty("hasScriptError", !succes);
+
 }
 
-void BoundQMLTextInput::_setFormulaOptions(std::string formula, bool valid)
+void BoundQMLTextInput::_setFormulaOptions(std::string formulaShown, std::string formulaValidated)
 {
 	if (_formula)
-		_formula->setValue( { formula, valid ? "T" : "F"});
+		_formula->setValue( { formulaShown, formulaValidated } );
 }
 
-void BoundQMLTextInput::_setFormulaValidated(bool valid)
+void BoundQMLTextInput::_setFormulaValidated()
 {
 	if (_formula)
 	{
 		auto oldVal = _formula->term();
-		oldVal[1] = valid ? "T" : "F";
+		oldVal[1] = oldVal[0]; //Move the previously shown formula that was now validated into the validated field
+		_formula->setValue(oldVal);
+	}
+}
+
+void BoundQMLTextInput::_setFormulaChanged(std::string formulaShownChanged)
+{
+	if (_formula)
+	{
+		auto oldVal = _formula->term();
+		oldVal[0] = formulaShownChanged;
 		_formula->setValue(oldVal);
 	}
 }
@@ -330,7 +336,7 @@ bool BoundQMLTextInput::_formulaResultInBounds(double result)
 		QString end;
 		if (tooSmall)	end = (inclusive ? "&ge; " : "&gt; ") + getItemProperty("min").toString();
 		else			end = (inclusive ? "&le; " : "&lt; ") + getItemProperty("max").toString();
-		showControlErrorTemporary("The result (" + QString::number(result) + ") must be " + end);
+		showControlError("The result (" + QString::number(result) + ") must be " + end);
 	}
 
 	return inBounds;
@@ -416,7 +422,7 @@ void BoundQMLTextInput::textChangedSlot()
 	_value = getItemProperty("value").toString();
 	if (_inputType == TextInputType::FormulaType)
 	{
-		_setFormulaOptions(fq(_value));
+		_setFormulaChanged(fq(_value));
 		runRScript("as.character(" + _value + ")", true);
 	}
 	else if (_option)

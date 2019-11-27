@@ -53,8 +53,9 @@ private slots:
 
 private:
 	void _setOptionValue(Option* option, QString& text);
-	void _setFormulaOptions(std::string formula, bool valid = false);
-	void _setFormulaValidated(bool valid);
+	void _setFormulaOptions(std::string formulaShown, std::string formulaValidated);
+	void _setFormulaChanged(std::string formulaShownChanged);
+	void _setFormulaValidated();
 	bool _formulaResultInBounds(double result);
 
 	QString					  _getPercentValue();
