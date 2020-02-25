@@ -328,8 +328,15 @@
                               title = gettext("Implicit errors"), 
                               type = 'string')
 
-    message <- gettextf("Sample sizes shown are implicit sample sizes derived from the ARM risk assessments: IR = <b>%1$s</b> and CR = <b>%2$s</b>.", options[["IR"]], options[["CR"]])
+     if(options[["prior"]] == "none")
+      message <- gettext("No implicit sample is assumed.")   
 
+    if(options[["prior"]] == "auditRiskModel")
+      message <- gettextf("Sample sizes shown are implicit sample sizes derived from the ARM risk assessments: IR = <b>%1$s</b> and CR = <b>%2$s</b>.", options[["IR"]], options[["CR"]])
+
+    if(options[["prior"]] == "earlierSample")
+      message <- gettextf("Sample sizes shown are implicit sample sizes derived from an earlier sample: n = <b>%1$s</b> and k = <b>%2$s</b>.", options[["earlierSampleN"]], options[["earlierSampleK"]])
+    
     sampletable$addFootnote(message = message, symbol = gettext("<i>Note.</i>"))
 
     planningContainer[["sampletable"]] <- sampletable
@@ -558,7 +565,7 @@
   if(is.null(planningContainer[["priorPlot"]])){
 
     priorPlot <- createJaspPlot(plot = NULL, 
-                                title = gettext("Implied Prior from Risk Assessments"), 
+                                title = gettext("Implied Prior Distribution"), 
                                 width = 600, 
                                 height = 400)
     priorPlot$position <- positionInContainer

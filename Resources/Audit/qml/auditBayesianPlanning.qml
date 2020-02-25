@@ -133,56 +133,12 @@ Form {
 
 			RadioButtonGroup
 			{
-				id: 					ir
-				title: 				qsTr("Inherent Risk")
-				name: 				"IR"
-
-				RadioButton
-				{
-					text: 			qsTr("High")
-					name: 			"High"
-					checked: 		true
-				}
-
-				RadioButton
-				{
-					text: 			qsTr("Medium")
-					name: 			"Medium"
-				}
-
-				RadioButton
-				{
-					text: 			qsTr("Low")
-					name: 			"Low"
-				}
-
-				RadioButton
-				{
-					id: 							irCustom
-					text:	 						qsTr("Custom")
-					name: 						"Custom"
-					childrenOnSameRow: true
-
-					PercentField
-					{
-						name: 					"irCustom"
-						visible: 				irCustom.checked
-						decimals: 			2
-						defaultValue: 	100
-						min:						25
-					}
-				}
-			}
-
-			RadioButtonGroup
-			{
 				id: 							expectedErrors
 				name: 						"expectedErrors"
-				title: 						qsTr("Expected Errors")
+				title: 						qsTr("Tolerable Errors")
 
 				RowLayout
 				{
-					enabled: 				materialityAbsolute.checked
 
 					RadioButton
 					{
@@ -200,7 +156,7 @@ Form {
 						decimals: 		2
 						visible: 			expectedAbsolute.checked
 						fieldWidth: 	60
-						label: 				euroValuta.checked ? "€" : (dollarValuta.checked ? "$" : otherValutaName.value)
+						label: 				materialityAbsolute.checked ? (euroValuta.checked ? "€" : (dollarValuta.checked ? "$" : otherValutaName.value)) : ""
 					}
 				}
 
@@ -218,7 +174,7 @@ Form {
 					{
 						name: 				"expectedPercentage"
 						enabled: 			expectedRelative.checked
-						decimals: 		3
+						decimals: 		2
 						defaultValue: 0
 						visible: 			expectedRelative.checked
 						fieldWidth: 	40
@@ -245,86 +201,6 @@ Form {
 						helpPage:			"Audit/explanatoryText"
 						toolTip: 			qsTr("Show explanatory text at each step of the analysis")
 					}
-				}
-
-				CheckBox
-				{
-					text:	 		qsTr("Report badges")
-					name: 		"reportBadges"
-					checked: 	false
-					visible: 	false
-				}
-			}
-
-			RadioButtonGroup
-			{
-				id: 						cr
-				title: 					qsTr("Control Risk")
-				name: 					"CR"
-
-				RadioButton
-				{
-					text: 				qsTr("High")
-					name: 				"High"
-					checked: 			true
-				}
-
-				RadioButton
-				{
-					text: 				qsTr("Medium")
-					name: 				"Medium"
-				}
-
-				RadioButton
-				{
-					text: 				qsTr("Low")
-					name: 				"Low"
-				}
-
-				RadioButton
-				{
-					id: 							crCustom
-					text:	 						qsTr("Custom")
-					name: 						"Custom"
-					childrenOnSameRow: true
-
-					PercentField
-					{
-						name: 					"crCustom"
-						visible: 				crCustom.checked
-						decimals: 			2
-						defaultValue: 	100
-						min:						25
-					}
-				}
-			}
-
-			RadioButtonGroup
-			{
-				id: 								planningModel
-				title: 							qsTr("Planning Distribution")
-				name: 							"planningModel"
-
-				RadioButton
-				{
-					id: 				beta
-					text: 			qsTr("Beta")
-					name: 			"binomial"
-					checked: 		true
-				}
-
-				RadioButton
-				{
-					id: 				gamma
-					text: 			qsTr("Gamma")
-					name: 			"Poisson"
-				}
-
-				RadioButton
-				{
-					id: 				betaBinomial
-					text: 			qsTr("Beta-binomial")
-					name: 			"hypergeometric"
 				}
 			}
 
@@ -368,6 +244,193 @@ Form {
 						fieldWidth: 100
 						enabled: 		otherValuta.checked
 						visible: 		otherValuta.checked
+					}
+				}
+			}
+		}
+	}
+
+	Section 
+	{
+		text: 						qsTr("Prior Distribution")
+		columns: 					2
+
+		RadioButtonGroup
+		{
+			id: 								planningModel
+			title: 							qsTr("Functional Form")
+			name: 							"planningModel"
+
+			RadioButton
+			{
+				id: 				beta
+				text: 			qsTr("Beta")
+				name: 			"binomial"
+				checked: 		true
+			}
+
+			RadioButton
+			{
+				id: 				gamma
+				text: 			qsTr("Gamma")
+				name: 			"Poisson"
+			}
+
+			RadioButton
+			{
+				id: 				betaBinomial
+				text: 			qsTr("Beta-binomial")
+				name: 			"hypergeometric"
+			}
+		}
+
+		ColumnLayout
+		{
+			RadioButtonGroup
+			{
+				id: 					prior
+				title: 				qsTr("Prior Information")
+				name: 				"prior"
+				Layout.fillWidth: true
+
+				RadioButton {
+					id:					noPriorInfo
+					text:	 			qsTr("None")
+					name: 			"none"
+					checked:		true
+				}
+
+				RadioButton
+				{
+					id: 				auditRiskModel
+					text: 			qsTr("Risk assessments (Audit Risk Model)")
+					name: 			"auditRiskModel"
+				}
+
+				RadioButton {
+					id: 				earlierSample
+					text:	 			qsTr("Earlier sample")
+					name: 			"earlierSample"
+				}
+			}
+
+			GroupBox 
+			{
+				title: 						qsTr(" ")
+				columns: 					2
+				visible: 					!noPriorInfo.checked
+				Layout.fillWidth: true
+
+				// Options for the Audit Risk Model prior
+				RadioButtonGroup
+				{
+					id: 					ir
+					title: 				qsTr("Inherent Risk")
+					name: 				"IR"
+					visible: 			auditRiskModel.checked
+
+					RadioButton
+					{
+						text: 			qsTr("High")
+						name: 			"High"
+						checked: 		true
+					}
+
+					RadioButton
+					{
+						text: 			qsTr("Medium")
+						name: 			"Medium"
+					}
+
+					RadioButton
+					{
+						text: 			qsTr("Low")
+						name: 			"Low"
+					}
+
+					RadioButton
+					{
+						id: 							irCustom
+						text:	 						qsTr("Custom")
+						name: 						"Custom"
+						childrenOnSameRow: true
+
+						PercentField
+						{
+							name: 					"irCustom"
+							visible: 				irCustom.checked
+							decimals: 			2
+							defaultValue: 	100
+							min:						1
+						}
+					}
+				}
+
+				RadioButtonGroup
+				{
+					id: 						cr
+					title: 					qsTr("Control Risk")
+					name: 					"CR"
+					visible: 				auditRiskModel.checked
+
+					RadioButton
+					{
+						text: 				qsTr("High")
+						name: 				"High"
+						checked: 			true
+					}
+
+					RadioButton
+					{
+						text: 				qsTr("Medium")
+						name: 				"Medium"
+					}
+
+					RadioButton
+					{
+						text: 				qsTr("Low")
+						name: 				"Low"
+					}
+
+					RadioButton
+					{
+						id: 							crCustom
+						text:	 						qsTr("Custom")
+						name: 						"Custom"
+						childrenOnSameRow: true
+
+						PercentField
+						{
+							name: 					"crCustom"
+							visible: 				crCustom.checked
+							decimals: 			2
+							defaultValue: 	100
+							min:						1
+						}
+					}
+				}
+
+				// Options for the earlier sample prior
+				ColumnLayout
+				{
+					spacing: 				5 * preferencesModel.uiScale
+
+					IntegerField 
+					{
+						name: 				"earlierSampleN"
+						text: 				qsTr("Number of earlier observations")
+						defaultValue: 0
+						min: 					0		
+						visible:			earlierSample.checked		
+					}
+
+					IntegerField 
+					{
+						name:					"earlierSampleK"
+						text: 				qsTr("Number of earlier errors")
+						defaultValue: 0
+						min: 					0
+						visible:			earlierSample.checked					
 					}
 				}
 			}
@@ -431,7 +494,7 @@ Form {
 
 				CheckBox
 				{
-					text: 								qsTr("Implied prior from risk assessments")
+					text: 								qsTr("Implied prior distribution")
 					name: 								"priorPlot"
 					childrenOnSameRow: 		false
 
@@ -461,21 +524,21 @@ Form {
 
 							RadioButton
 							{
+								text: 			qsTr("None")
+								name: 			"shadePriorNone"
+								checked: 		true
+							}
+
+							RadioButton
+							{
 								text: 			qsTr("Credible region")
 								name: 			"shadePriorCredibleRegion"
-								checked: 		true
 							}
 
 							RadioButton
 							{
 								text: 			qsTr("Support regions")
 								name: 			"shadePriorHypotheses"
-							}
-
-							RadioButton
-							{
-								text: 			qsTr("None")
-								name: 			"shadePriorNone"
 							}
 						}
 					}

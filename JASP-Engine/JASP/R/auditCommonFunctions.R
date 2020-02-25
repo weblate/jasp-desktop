@@ -28,7 +28,8 @@
 
   ### PROCEDURE ###
   .auditProcedureStage(options, 
-                        jaspResults)
+                       type,
+                       jaspResults)
 
   ### PLANNING ###
   .auditPlanningStage(options, 
@@ -61,16 +62,6 @@
   .auditConclusionStage(options, 
                         jaspResults)
 
-  ### BADGES ###
-  badgeReady <- options[["auditResult"]] != ""
-
-  .auditBadgeSection(options,
-                     type = "workflow",
-                     stateContainer = NULL,
-                     jaspResults, 
-                     badgeReady, 
-                     position = 6)
-
 }
 
 ################################################################################
@@ -92,10 +83,21 @@
                                  jaspResults, 
                                  positionInContainer = 1)
 
-  # Create the audit risk model paragraph
-  .auditRiskModelParagraph(options, 
-                           jaspResults, 
-                           position = 2)
+  # Create the prior information paragraph
+  if((type == "frequentist" && options[["auditRiskModel"]]) || 
+    (type == "bayesian" && options[["prior"]] == "auditRiskModel")){
+
+    .auditRiskModelParagraph(options, 
+                            jaspResults, 
+                            position = 2)
+
+  } else if(type == "bayesian" && options[["prior"]] == "earlierSample"){
+
+    .earlierSampleParagraph(options,
+                            jaspResults,
+                            position = 2)
+
+  }
 
   # Check if the options have valid values for running the analysis
   ready <- .auditPlanningReady(options, 
@@ -206,18 +208,6 @@
   }
 
   # ---
-  
-  # --- BADGES
-
-  # Provide the analysis badges
-  .auditBadgeSection(options,
-                     type = "planning",
-                     stateContainer = NULL,
-                     jaspResults, 
-                     ready, 
-                     position = 9)
-
-  # --- 
 }
 
 ################################################################################
@@ -247,6 +237,7 @@
 ################################################################################
 
 .auditProcedureStage <- function(options, 
+                                 type,
                                  jaspResults){
 
   # Extract the record number and book value columns
@@ -293,10 +284,21 @@
 
   # ---
 
-  # Create the audit risk model paragraph
-  .auditRiskModelParagraph(options, 
-                           jaspResults, 
-                           position = 2)
+  # Create the prior information paragraph
+  if((type == "frequentist" && options[["auditRiskModel"]]) || 
+    (type == "bayesian" && options[["prior"]] == "auditRiskModel")){
+
+    .auditRiskModelParagraph(options, 
+                            jaspResults, 
+                            position = 2)
+
+  } else if(type == "bayesian" && options[["prior"]] == "earlierSample"){
+
+    .earlierSampleParagraph(options,
+                            jaspResults,
+                            position = 2)
+
+  }
 }
 
 .auditReadDataProcedure <- function(options, 
@@ -689,7 +691,7 @@
 }
 
 ################################################################################
-################## Common functions for the Audit Risk Model ###################
+################## Common functions for the Prior information ##################
 ################################################################################
 
 .auditRiskModelParagraph <- function(options, 
@@ -699,7 +701,7 @@
   if(!is.null(jaspResults[["ARMcontainer"]])) 
     return()
 
-  ARMcontainer <- createJaspContainer(title = gettext("<u>Audit Risk Model</u>"))
+  ARMcontainer <- createJaspContainer(title = gettext("<u>Risk assessments (Audit Risk Model)</u>"))
   ARMcontainer$position <- position
   ARMcontainer$dependOn(options = c("confidence", 
                                     "IR",
@@ -711,7 +713,9 @@
                                     "materialityValue", 
                                     "explanatoryText", 
                                     "valuta",
-                                    "otherValutaName"))
+                                    "otherValutaName",
+                                    "prior",
+                                    "auditRiskModel"))
   
   jaspResults[["ARMcontainer"]] <- ARMcontainer
 
@@ -792,6 +796,57 @@
                         message)
     
     }
+
+    ARMcontainer[["AuditRiskModelParagraph"]] <- createJaspHtml(message, "p")
+    ARMcontainer[["AuditRiskModelParagraph"]]$position <- 1
+  }
+}
+
+.earlierSampleParagraph <- function(options, 
+                                    jaspResults, 
+                                    position){
+
+  if(!is.null(jaspResults[["ARMcontainer"]])) 
+    return()
+
+  ARMcontainer <- createJaspContainer(title = gettext("<u>Earlier sample</u>"))
+  ARMcontainer$position <- position
+  ARMcontainer$dependOn(options = c("confidence", 
+                                    "IR",
+                                    "irCustom", 
+                                    "CR", 
+                                    "crCustom",
+                                    "materiality", 
+                                    "materialityPercentage", 
+                                    "materialityValue", 
+                                    "explanatoryText", 
+                                    "valuta",
+                                    "otherValutaName",
+                                    "prior",
+                                    "earlierSampleN",
+                                    "earlierSampleK",
+                                    "auditRiskModel"))
+  
+  jaspResults[["ARMcontainer"]] <- ARMcontainer
+
+  earlierSampleN <- options[["earlierSampleN"]]
+  earlierSampleK <- options[["earlierSampleK"]]
+
+  textARM <- paste0("Earlier sample of ", 
+                    earlierSampleN,
+                    " records containing ", 
+                    earlierSampleK, 
+                    " errors")
+  
+  ARMcontainer[["ARMformula"]] <- createJaspHtml(textARM, "h3")
+  ARMcontainer[["ARMformula"]]$position <- 2
+
+  if(options[["explanatoryText"]]){
+
+    message <- gettextf("Prior to the substantive testing phase, an earlier sample of the population was inspected. The earlier sample contained 
+                        <b>%1$s</b> transactions, of which <b>%2$s</b> were in error.",
+                        earlierSampleN,
+                        earlierSampleK)
 
     ARMcontainer[["AuditRiskModelParagraph"]] <- createJaspHtml(message, "p")
     ARMcontainer[["AuditRiskModelParagraph"]]$position <- 1
@@ -943,7 +998,11 @@
                                            "recordNumberVariable",
                                            "monetaryVariable",
                                            "valuta",
-                                           "otherValutaName"))
+                                           "otherValutaName",
+                                            "prior",
+                                            "earlierSampleN",
+                                            "earlierSampleK",
+                                            "auditRiskModel"))
 
     jaspResults[["planningContainer"]] <- planningContainer
 
@@ -961,13 +1020,14 @@
         options[["materialityValue"]] >= planningOptions[["populationValue"]])
       planningContainer$setError(gettext("Analysis not possible: Your materiality is higher than the total value of the observations.")) 
 
-    expTMP <- ifelse(options[['expectedErrors']] == "expectedRelative", 
-                     yes = options[["expectedPercentage"]], 
-                     no = options[["expectedNumber"]] / 
-                          planningOptions[["populationValue"]])
+    expTMP <- ifelse(options[["expectedErrors"]] == "expectedRelative", 
+                        yes = options[["expectedPercentage"]], 
+                        no = options[["expectedNumber"]])
+    if(options[["materiality"]] == "materialityAbsolute")
+      expTMP <- expTMP / planningOptions[["populationValue"]]
 
-    if(expTMP > planningOptions[["materiality"]])
-      planningContainer$setError(gettext("Analysis not possible: Your expected errors are higher than materiality."))
+    if(expTMP > planningOptions[["materiality"]] && expTMP < 1)
+      planningContainer$setError(gettext("Analysis not possible: Your tolerable errors are higher than materiality."))
   }
 }
 
@@ -1015,12 +1075,15 @@
   
   expectedErrors <- ifelse(options[["expectedErrors"]] == "expectedRelative", 
                            yes = options[["expectedPercentage"]], 
-                           no = options[["expectedNumber"]] / 
-                                populationValue)
+                           no = options[["expectedNumber"]])
+  if(options[["materiality"]] == "materialityAbsolute")
+    expectedErrors <- expectedErrors / populationValue
 
   expectedErrorsLabel <- ifelse(options[["expectedErrors"]] == "expectedRelative", 
                                 yes = paste0(round(expectedErrors * 100, 2), "%"), 
-                                no = paste(valuta, options[["expectedNumber"]]))
+                                no = options[["expectedNumber"]])
+  if(options[["materiality"]] == "materialityAbsolute")
+    expectedErrorsLabel <- paste(valuta, expectedErrorsLabel)
   
   likelihood <- base::switch(options[["planningModel"]], 
                              "Poisson" = "poisson", 
@@ -1074,45 +1137,49 @@
 
   } else if(ready){
 
-  auditRisk <- 1 - options[["confidence"]]
+    auditRisk <- 1 - options[["confidence"]]
 
-  if(options[["IR"]] != "Custom"){
+    if(options[["IR"]] != "Custom"){
 
-    inherentRisk <- base::switch(options[["IR"]], 
-                                 "Low" = 0.50, 
-                                 "Medium" = 0.60, 
-                                 "High" = 1)
+      inherentRisk <- base::switch(options[["IR"]], 
+                                  "Low" = 0.50, 
+                                  "Medium" = 0.60, 
+                                  "High" = 1)
 
-  } else {
+    } else {
 
-    inherentRisk <- options[["irCustom"]]
-  }
+      inherentRisk <- options[["irCustom"]]
+    }
 
-  if(options[["CR"]] != "Custom"){
+    if(options[["CR"]] != "Custom"){
 
-    controlRisk <- base::switch(options[["CR"]], 
-                                "Low" = 0.50, 
-                                "Medium" = 0.60, 
-                                "High" = 1)
+      controlRisk <- base::switch(options[["CR"]], 
+                                  "Low" = 0.50, 
+                                  "Medium" = 0.60, 
+                                  "High" = 1)
 
-  } else {
+    } else {
 
-    controlRisk <- options[["crCustom"]]
+      controlRisk <- options[["crCustom"]]
 
-  }
+    }
 
-  detectionRisk <- auditRisk / inherentRisk / controlRisk
+    detectionRisk <- auditRisk / inherentRisk / controlRisk
 
-  if(detectionRisk >= 1){
-    planningContainer$setError(gettextf("The detection risk is higher than 100%%. Please
-                                        re-specify your custom values for the Inherent 
-                                        risk and/or Control risk."))  
-    return()
-  }
+    if(detectionRisk >= 1){
+      planningContainer$setError(gettextf("The detection risk is higher than 100%%. Please
+                                          re-specify your custom values for the Inherent 
+                                          risk and/or Control risk."))  
+      return()
+    }
 
     if(type == "frequentist"){
 
-      adjustedConfidence <- 1 - detectionRisk
+      if(options[["auditRiskModel"]]){
+        adjustedConfidence <- 1 - detectionRisk
+      } else {
+        adjustedConfidence <- options[["confidence"]]
+      }
 
       result <- try({
         jfa::planning(materiality = planningOptions[["materiality"]], 
@@ -1126,22 +1193,45 @@
 
       result <- try({
 
-        prior <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
-                                confidence = planningOptions[["confidence"]],
-                                expectedError = planningOptions[["expectedErrors"]], 
-                                likelihood = planningOptions[["likelihood"]], 
-                                N = planningOptions[["populationSize"]], 
-                                ir = inherentRisk, 
-                                cr = controlRisk)
+        if(options[["prior"]] == "auditRiskModel"){
 
-        jfa::planning(materiality = planningOptions[["materiality"]], 
-                      confidence = planningOptions[["confidence"]], 
-                      expectedError = planningOptions[["expectedErrors"]], 
-                      N = planningOptions[["populationSize"]], 
-                      prior = prior)
+          prior <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
+                                  confidence = planningOptions[["confidence"]],
+                                  expectedError = planningOptions[["expectedErrors"]], 
+                                  likelihood = planningOptions[["likelihood"]], 
+                                  N = planningOptions[["populationSize"]], 
+                                  ir = inherentRisk, 
+                                  cr = controlRisk)
 
-                    })
+          jfa::planning(materiality = planningOptions[["materiality"]], 
+                        confidence = planningOptions[["confidence"]], 
+                        expectedError = planningOptions[["expectedErrors"]], 
+                        N = planningOptions[["populationSize"]], 
+                        prior = prior)
+          
+        } else if(options[["prior"]] == "earlierSample"){
 
+          jfa::planning(materiality = planningOptions[["materiality"]], 
+                        confidence = planningOptions[["confidence"]], 
+                        expectedError = planningOptions[["expectedErrors"]], 
+                        N = planningOptions[["populationSize"]], 
+                        likelihood = planningOptions[["likelihood"]],
+                        prior = TRUE,
+                        nPrior = options[["earlierSampleN"]],
+                        kPrior = options[["earlierSampleK"]])
+
+        } else if(options[["prior"]] == "none"){
+
+          jfa::planning(materiality = planningOptions[["materiality"]], 
+                        confidence = planningOptions[["confidence"]], 
+                        expectedError = planningOptions[["expectedErrors"]],
+                        likelihood = planningOptions[["likelihood"]], 
+                        N = planningOptions[["populationSize"]], 
+                        prior = TRUE)
+
+        }
+
+      })
     }
 
     if(isTryError(result)){
@@ -1202,7 +1292,7 @@
     if(type == "frequentist"){
 
       planningContainer[["planningParagraph"]] <- createJaspHtml(
-      gettextf("The most likely error in the data was expected to be <b>%1$s</b>. The sample size that is required for a materiality of <b>%2$s</b>, assuming the sample contains <b>%3$s</b> full errors, is <b>%4$s</b>. This sample size is based on the <b>%5$s</b> distribution, the inherent risk <b>(%6$s)</b>, the control risk <b>(%7$s)</b> and the expected errors. Consequently, if the sum of errors from the audited observations remains below <b>%8$s</b>, the maximum misstatement is estimated to be below materiality.",
+      gettextf("The tolerable error in the sample is <b>%1$s</b>. The sample size that is required for a materiality of <b>%2$s</b>, assuming the sample contains <b>%3$s</b> full errors, is <b>%4$s</b>. This sample size is based on the <b>%5$s</b> distribution, the inherent risk <b>(%6$s)</b>, the control risk <b>(%7$s)</b> and the expected errors. Consequently, if the sum of errors from the audited observations remains below <b>%8$s</b>, the maximum misstatement is estimated to be below materiality.",
       planningOptions[["expectedErrorsLabel"]],
       planningOptions[["materialityLabel"]],
       planningState[["expectedSampleError"]],
@@ -1220,7 +1310,7 @@
                                   "hypergeometric" = "beta-binomial")
 
 
-      planningContainer[["planningParagraph"]] <- createJaspHtml(gettextf("The most likely error in the data was expected to be <b>%1$s</b>. The sample size that is required for a materiality of <b>%2$s</b>, assuming the sample contains <b>%3$s</b> full errors, is <b>%4$s</b>. This sample size is based on the <b>%5$s</b> distribution, the inherent risk <b>(%6$s)</b>, the control risk <b>(%7$s)</b> and the expected errors. The information in this prior distribution states that there is a <b>%8$s%%</b> prior probability that the population misstatement is lower than materiality. Consequently, if the sum of errors from the audited observations remains below <b>%9$s</b> the maximum misstatement is estimated to be below materiality.",
+      planningContainer[["planningParagraph"]] <- createJaspHtml(gettextf("The tolerable error in the sample is <b>%1$s</b>. The sample size that is required for a materiality of <b>%2$s</b>, assuming the sample contains <b>%3$s</b> full errors, is <b>%4$s</b>. This sample size is based on the <b>%5$s</b> distribution, the inherent risk <b>(%6$s)</b>, the control risk <b>(%7$s)</b> and the expected errors. The information in this prior distribution states that there is a <b>%8$s%%</b> prior probability that the population misstatement is lower than materiality. Consequently, if the sum of errors from the audited observations remains below <b>%9$s</b> the maximum misstatement is estimated to be below materiality.",
       planningOptions[["expectedErrorsLabel"]],
       planningOptions[["materialityLabel"]],
       planningState[["expectedSampleError"]],
@@ -1268,17 +1358,43 @@
   summaryTable$addColumnInfo(name = 'materiality',          
                              title = gettext("Materiality"),          
                              type = 'string')
-  summaryTable$addColumnInfo(name = 'IR',                   
-                             title = gettext("Inherent risk"),        
-                             type = 'string')
-  summaryTable$addColumnInfo(name = 'CR',                   
-                             title = gettext("Control risk"),         
-                             type = 'string')
-  summaryTable$addColumnInfo(name = 'DR',                   
-                             title = gettext("Detection risk"),       
-                             type = 'string')
+  
+  if((type == "frequentist" && options[["auditRiskModel"]]) || 
+      (type == "bayesian" && options[["prior"]] == "auditRiskModel")){
+
+    summaryTable$addColumnInfo(name = 'IR',                   
+                              title = gettext("Inherent risk"),        
+                              type = 'string')
+    summaryTable$addColumnInfo(name = 'CR',                   
+                              title = gettext("Control risk"),         
+                              type = 'string')
+    summaryTable$addColumnInfo(name = 'DR',                   
+                              title = gettext("Detection risk"),       
+                              type = 'string')
+
+  } else if(type == "bayesian" && options[["prior"]] == "earlierSample"){
+
+      summaryTable$addColumnInfo(name = 'AR',                   
+                                title = gettext("Audit risk"),       
+                                type = 'string')  
+      summaryTable$addColumnInfo(name = 'priorN',                   
+                                title = gettext("Earlier sample size"),         
+                                type = 'string')
+      summaryTable$addColumnInfo(name = 'priorK',                   
+                                title = gettext("Earlier errors"),       
+                                type = 'string')  
+
+  } else if((type == "frequentist" && !options[["auditRiskModel"]]) ||
+            (type == "bayesian" && options[["prior"]] == "none")){
+
+      summaryTable$addColumnInfo(name = 'AR',                   
+                                title = gettext("Audit risk"),       
+                                type = 'string')  
+
+  }
+
   summaryTable$addColumnInfo(name = 'k',                    
-                             title = gettext("Expected errors"),       
+                             title = gettext("Tolerable errors"),       
                              type = 'string')
   summaryTable$addColumnInfo(name = 'n',                    
                              title = gettext("Required sample size"), 
@@ -1298,34 +1414,39 @@
 
   planningContainer[["summaryTable"]] <- summaryTable
 
-  auditRisk <- 1 - options[["confidence"]]
+  if(type == "frequentist" && options[["auditRiskModel"]] || 
+      (type == "bayesian" && options[["prior"]] == "auditRiskModel")){
 
-  if(options[["IR"]] != "Custom"){
+    auditRisk <- 1 - options[["confidence"]]
 
-    inherentRisk <- base::switch(options[["IR"]], 
-                                 "Low" = 0.50, 
-                                 "Medium" = 0.60, 
-                                 "High" = 1)
+    if(options[["IR"]] != "Custom"){
 
-  } else {
+      inherentRisk <- base::switch(options[["IR"]], 
+                                  "Low" = 0.50, 
+                                  "Medium" = 0.60, 
+                                  "High" = 1)
 
-    inherentRisk <- options[["irCustom"]]
+    } else {
+
+      inherentRisk <- options[["irCustom"]]
+    }
+
+    if(options[["CR"]] != "Custom"){
+
+      controlRisk <- base::switch(options[["CR"]], 
+                                  "Low" = 0.50, 
+                                  "Medium" = 0.60, 
+                                  "High" = 1)
+
+    } else {
+
+      controlRisk <- options[["crCustom"]]
+
+    }
+
+    detectionRisk <- auditRisk / inherentRisk / controlRisk
+
   }
-
-  if(options[["CR"]] != "Custom"){
-
-    controlRisk <- base::switch(options[["CR"]], 
-                                "Low" = 0.50, 
-                                "Medium" = 0.60, 
-                                "High" = 1)
-
-  } else {
-
-    controlRisk <- options[["crCustom"]]
-
-  }
-
-  detectionRisk <- auditRisk / inherentRisk / controlRisk
 
   if(!ready || planningContainer$getError()){
 
@@ -1348,15 +1469,37 @@
 
     summaryTable$addFootnote(message = message, symbol = gettext("<i>Note.</i>"))
 
-    row <- data.frame(materiality = planningOptions[["materialityLabel"]], 
-                      IR = paste0(round(inherentRisk * 100, 2), "%"), 
-                      CR = paste0(round(controlRisk * 100, 2), "%"), 
-                      DR = paste0(round(detectionRisk * 100, 2), "%"), 
-                      k = ".", 
-                      n = ".")
+    row <- data.frame(materiality = planningOptions[["materialityLabel"]])
+    
+    if((type == "frequentist" && options[["auditRiskModel"]]) || 
+        (type == "bayesian" && options[["prior"]] == "auditRiskModel")){
+      
+      row <- cbind(row, IR = paste0(round(inherentRisk * 100, 2), "%"), 
+                        CR = paste0(round(controlRisk * 100, 2), "%"), 
+                        DR = paste0(round(detectionRisk * 100, 2), "%"), 
+                        k = ".", 
+                        n = ".")
+
+    } else if(type == "bayesian" && options[["prior"]] == "earlierSample"){
+
+      row <- cbind(row, AR = paste0(round((1 - options[["confidence"]]) * 100, 2), "%"),
+                        priorN = options[["earlierSampleN"]], 
+                        priorK = options[["earlierSampleK"]], 
+                        k = ".", 
+                        n = ".")
+      
+    } else if((type == "frequentist" && !options[["auditRiskModel"]]) || 
+                (type == "bayesian" && options[["prior"]] == "none")){
+
+      row <- cbind(row, AR = paste0(round((1 - options[["confidence"]]) * 100, 2), "%"), 
+                        k = ".", 
+                        n = ".")      
+
+    }
 
     if(type == "bayesian" && options[["expectedEvidenceRatio"]])
       row <- cbind(row, expectedEvidenceRatio = ".")
+
     if(type == "bayesian" && options[["expectedBayesFactor"]])
       row <- cbind(row, expectedBayesFactor = ".")
     
@@ -1414,18 +1557,39 @@
 
   k <- base::switch(options[["expectedErrors"]], 
                     "expectedRelative" = planningState[["expectedSampleError"]], 
-                    "expectedAbsolute" = paste(
-                                          planningOptions[["valuta"]], 
-                                          options[["expectedNumber"]]))
+                    "expectedAbsolute" = options[["expectedNumber"]])
+  if(options[["materiality"]] == "materialityAbsolute")
+    k <- paste(planningOptions[["valuta"]], k)
   
   n <- planningState[["sampleSize"]]
 
-  row <- data.frame(materiality = planningOptions[["materialityLabel"]], 
-                    IR = paste0(round(inherentRisk * 100, 2), "%"), 
-                    CR = paste0(round(controlRisk * 100, 2), "%"), 
-                    DR = paste0(round(detectionRisk * 100, 2), "%"), 
-                    k = k, 
-                    n = n)
+  row <- data.frame(materiality = planningOptions[["materialityLabel"]])
+
+  if((type == "frequentist" && options[["auditRiskModel"]]) || 
+      (type == "bayesian" && options[["prior"]] == "auditRiskModel")){
+    
+    row <- cbind(row, IR = paste0(round(inherentRisk * 100, 2), "%"), 
+                      CR = paste0(round(controlRisk * 100, 2), "%"), 
+                      DR = paste0(round(detectionRisk * 100, 2), "%"), 
+                      k = k, 
+                      n = n)
+
+  } else if(type == "bayesian" && options[["prior"]] == "earlierSample"){
+
+    row <- cbind(row, priorN = options[["earlierSampleN"]], 
+                      priorK = options[["earlierSampleK"]], 
+                      AR = paste0(round((1 - options[["confidence"]]) * 100, 2), "%"), 
+                      k = k, 
+                      n = n)
+    
+  } else if((type == "frequentist" && !options[["auditRiskModel"]]) || 
+              (type == "bayesian" && options[["prior"]] == "none")){
+
+    row <- cbind(row, AR = paste0(round((1 - options[["confidence"]]) * 100, 2), "%"), 
+                      k = k, 
+                      n = n)      
+
+  }
 
   if(type == "bayesian" && 
       (options[["expectedEvidenceRatio"]] || options[["expectedBayesFactor"]])){
@@ -1507,8 +1671,12 @@
 
     if(type == "frequentist"){
 
-      adjustedConfidence <- 1 - detectionRisk
-
+      if(options[["auditRiskModel"]]){
+        adjustedConfidence <- 1 - detectionRisk
+      } else {
+        adjustedConfidence <- options[["confidence"]]
+      }
+      
       startProgressbar(3)
 
       n1 <- jfa::planning(materiality = planningOptions[["materiality"]], 
@@ -1554,51 +1722,120 @@
 
       startProgressbar(3)
 
-      p1 <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
-                            confidence = planningOptions[["confidence"]],
-                            expectedError = planningOptions[["expectedErrors"]], 
-                            likelihood = "binomial", 
-                            N = planningOptions[["populationSize"]], 
-                            ir = inherentRisk, 
-                            cr = controlRisk)
+      if(options[["prior"]] == "auditRiskModel"){
 
-      n1 <- jfa::planning(materiality = planningOptions[["materiality"]], 
-                          confidence = planningOptions[["confidence"]], 
-                          expectedError = planningOptions[["expectedErrors"]], 
-                          N = planningOptions[["populationSize"]], 
-                          prior = p1)
+        p1 <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
+                              confidence = planningOptions[["confidence"]],
+                              expectedError = planningOptions[["expectedErrors"]], 
+                              likelihood = "binomial", 
+                              N = planningOptions[["populationSize"]], 
+                              ir = inherentRisk, 
+                              cr = controlRisk)
+
+        n1 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                            confidence = planningOptions[["confidence"]], 
+                            expectedError = planningOptions[["expectedErrors"]], 
+                            N = planningOptions[["populationSize"]], 
+                            prior = p1)
+
+      } else if(options[["prior"]] == "earlierSample"){
+
+        n1 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                      confidence = planningOptions[["confidence"]], 
+                      expectedError = planningOptions[["expectedErrors"]], 
+                      likelihood = "binomial", 
+                      N = planningOptions[["populationSize"]], 
+                      prior = TRUE, nPrior = options[["earlierSampleN"]],
+                      kPrior = options[["earlierSampleK"]])
+
+      } else if(options[["prior"]] == "none"){
+
+        n1 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                      confidence = planningOptions[["confidence"]], 
+                      expectedError = planningOptions[["expectedErrors"]], 
+                      likelihood = "binomial", 
+                      N = planningOptions[["populationSize"]], 
+                      prior = TRUE)
+
+      }
       
       progressbarTick()
       
-      p2 <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
-                            confidence = planningOptions[["confidence"]],
-                            expectedError = planningOptions[["expectedErrors"]], 
-                            likelihood = "poisson", 
-                            N = planningOptions[["populationSize"]], 
-                            ir = inherentRisk, 
-                            cr = controlRisk)
+      if(options[["prior"]] == "auditRiskModel"){
 
-      n2 <- jfa::planning(materiality = planningOptions[["materiality"]], 
-                          confidence = planningOptions[["confidence"]], 
-                          expectedError = planningOptions[["expectedErrors"]], 
-                          N = planningOptions[["populationSize"]], 
-                          prior = p2)
+        p2 <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
+                              confidence = planningOptions[["confidence"]],
+                              expectedError = planningOptions[["expectedErrors"]], 
+                              likelihood = "poisson", 
+                              N = planningOptions[["populationSize"]], 
+                              ir = inherentRisk, 
+                              cr = controlRisk)
+
+        n2 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                            confidence = planningOptions[["confidence"]], 
+                            expectedError = planningOptions[["expectedErrors"]], 
+                            N = planningOptions[["populationSize"]], 
+                            prior = p2)
+
+      } else if(options[["prior"]] == "earlierSample"){
+
+        n2 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                      confidence = planningOptions[["confidence"]], 
+                      expectedError = planningOptions[["expectedErrors"]], 
+                      likelihood = "poisson", 
+                      N = planningOptions[["populationSize"]], 
+                      prior = TRUE, nPrior = options[["earlierSampleN"]],
+                      kPrior = options[["earlierSampleK"]])
+
+      } else if(options[["prior"]] == "none"){
+
+        n2 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                      confidence = planningOptions[["confidence"]], 
+                      expectedError = planningOptions[["expectedErrors"]], 
+                      likelihood = "poisson", 
+                      N = planningOptions[["populationSize"]], 
+                      prior = TRUE)
+
+      }
       
       progressbarTick()
 
-      p3 <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
-                            confidence = planningOptions[["confidence"]],
-                            expectedError = planningOptions[["expectedErrors"]], 
-                            likelihood = "hypergeometric", 
-                            N = planningOptions[["populationSize"]], 
-                            ir = inherentRisk, 
-                            cr = controlRisk)
+      if(options[["prior"]] == "auditRiskModel"){
 
-      n3 <- jfa::planning(materiality = planningOptions[["materiality"]], 
-                          confidence = planningOptions[["confidence"]], 
-                          expectedError = planningOptions[["expectedErrors"]], 
-                          N = planningOptions[["populationSize"]], 
-                          prior = p3)
+        p3 <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
+                              confidence = planningOptions[["confidence"]],
+                              expectedError = planningOptions[["expectedErrors"]], 
+                              likelihood = "hypergeometric", 
+                              N = planningOptions[["populationSize"]], 
+                              ir = inherentRisk, 
+                              cr = controlRisk)
+
+        n3 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                            confidence = planningOptions[["confidence"]], 
+                            expectedError = planningOptions[["expectedErrors"]], 
+                            N = planningOptions[["populationSize"]], 
+                            prior = p3)
+
+      } else if(options[["prior"]] == "earlierSample"){
+
+        n3 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                      confidence = planningOptions[["confidence"]], 
+                      expectedError = planningOptions[["expectedErrors"]], 
+                      likelihood = "hypergeometric", 
+                      N = planningOptions[["populationSize"]], 
+                      prior = TRUE, nPrior = options[["earlierSampleN"]],
+                      kPrior = options[["earlierSampleK"]])
+
+      } else if(options[["prior"]] == "none"){
+
+        n3 <- jfa::planning(materiality = planningOptions[["materiality"]], 
+                      confidence = planningOptions[["confidence"]], 
+                      expectedError = planningOptions[["expectedErrors"]], 
+                      likelihood = "hypergeometric", 
+                      N = planningOptions[["populationSize"]], 
+                      prior = TRUE)
+
+      }
 
       progressbarTick()
 
@@ -2641,18 +2878,44 @@
 
     if(type == "frequentist"){
 
-      confidence <- 1 - detectionRisk
+      if(options[["auditRiskModel"]]){
+        confidence <- 1 - detectionRisk
+      } else {
+        confidence <- options[["confidence"]]
+      }
+
       prior <- NULL
+      nPrior <- 0
+      kPrior <- 0
 
     } else if(type == "bayesian"){
 
-      prior <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
-                              confidence = planningOptions[["confidence"]],
-                              expectedError = planningOptions[["expectedErrors"]], 
-                              likelihood = planningOptions[["likelihood"]], 
-                              N = planningOptions[["populationSize"]], 
-                              ir = inherentRisk, 
-                              cr = controlRisk)
+      if(options[["prior"]] == "auditRiskModel"){
+        prior <- jfa::auditPrior(materiality = planningOptions[["materiality"]], 
+                                confidence = planningOptions[["confidence"]],
+                                expectedError = planningOptions[["expectedErrors"]], 
+                                likelihood = planningOptions[["likelihood"]], 
+                                N = planningOptions[["populationSize"]], 
+                                ir = inherentRisk, 
+                                cr = controlRisk)
+        
+        nPrior <- NULL
+        kPrior <- NULL
+
+      } else if(options[["prior"]] == "earlierSample"){
+
+        prior <- TRUE
+        nPrior <- options[["earlierSampleN"]]
+        kPrior <- options[["earlierSampleK"]]
+
+      } else if(options[["prior"]] == "none"){
+
+        prior <- TRUE
+        nPrior <- NULL
+        kPrior <- NULL
+
+      }
+
       confidence <- options[["confidence"]]
 
     }
@@ -2670,6 +2933,7 @@
       result <- try({
   
         # call jfa evaluation
+        
         jfa::evaluation(sample = sample,
                         confidence = confidence,
                         nSumstats = nSumstats,
@@ -2677,7 +2941,9 @@
                         method = method,
                         materiality = planningOptions[["materiality"]],
                         N = planningOptions[["populationSize"]],
-                        prior = prior)
+                        prior = prior,
+                        nPrior = nPrior,
+                        kPrior = kPrior)
 
       })
 
@@ -2727,7 +2993,9 @@
                           materiality = planningOptions[["materiality"]],
                           N = planningOptions[["populationSize"]],
                           populationBookValue = planningOptions[["populationValue"]],
-                          prior = prior)
+                          prior = prior,
+                          nPrior = nPrior,
+                          kPrior = kPrior)
 
         })
 
@@ -3521,240 +3789,6 @@
     # Finsh conclusion
     jaspResults[["conclusionContainer"]] <- conclusionContainer
   }
-}
-
-################################################################################
-################## Common functions for the badges #############################
-################################################################################
-
-.auditBadgeSection <- function(options, 
-                               type,
-                               stateContainer = NULL,
-                               jaspResults, 
-                               ready, 
-                               position){
-
-  if(is.null(jaspResults[["badgeSection"]]) && 
-     ready && 
-     options[["reportBadges"]]){
-
-    if(!is.null(stateContainer) && stateContainer$getError())
-      return()
-
-    badgeSection <- createJaspContainer(title = gettext("<u>Report Badges</u>"))
-    badgeSection$position <- position
-    badgeSection$dependOn(options = c("values",
-                                      "confidence",
-                                      "explanatoryText",
-                                      "reportBadges",
-                                      "IR", 
-                                      "irCustom",
-                                      "CR",  
-                                      "crCustom", 
-                                      "confidence",
-                                      "populationSize", 
-                                      "populationValue",
-                                      "materiality",
-                                      "materialityPercentage", 
-                                      "materialityValue",
-                                      "expectedPercentage",
-                                      "expectedErrors", 
-                                      "expectedNumber",
-                                      "planningModel",
-                                      "bookValues", 
-                                      "auditValues", 
-                                      "estimator",
-                                      "digits",
-                                      "auditResult",
-                                      "stringerBoundLtaAdjustment"))
-
-    # Badge for annotation
-    annotatedBadge <- options[["explanatoryText"]]
-
-    if(annotatedBadge){
-      
-      badge <- .auditCreateBadge(type = "annotated")
-      annotationBadge <- createJaspPlot(plot = badge, 
-                          title = gettext("Badge: <i>Annotated</i>"), 
-                          width = 150, 
-                          height = 150)
-
-      annotationBadge$position <- 1
-      badgeSection[["annotationBadge"]] <- annotationBadge
-
-    }
-
-    if(type == "benfordsLaw"){
-
-      state <- .auditClassicalBenfordsLawGetResults(dataset, 
-                                                    options, 
-                                                    stateContainer,
-                                                    ready)
-
-      observed <- state[["N"]] * state[["percentages"]]
-      expected <- state[["N"]] * state[["inBenford"]]
-      chiSquare <- sum( (observed - expected)^2 / expected )
-      df <- state[["df"]]
-      p <- pchisq(q = chiSquare, df = df, lower.tail = FALSE)
-
-      approveBadge <- p >= (1 - options[["confidence"]])
-
-    } else if(type == "workflow"){
-
-      evaluationContainer <- jaspResults[["evaluationContainer"]]
-      evaluationState <- evaluationContainer[["evaluationState"]]$object
-
-      if(options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
-
-        bound <- (evaluationState[["popBookvalue"]] - evaluationState[["lowerBound"]]) / evaluationState[["popBookvalue"]]
-
-        if(bound < evaluationState[["materiality"]]){
-
-          conclusion <- "Approve population"
-
-        } else {
-
-          conclusion <- "Do not approve population"
-
-        }
-      } else {
-        conclusion <- evaluationState[["conclusion"]]
-      }
-
-      approveBadge <- conclusion == "Approve population"
-    }
-
-    if(type %in% c("benfordsLaw", "workflow")){
-
-      # Badge for result
-      if(approveBadge){
-        plotTitle <- gettext("Badge: <i>Approved</i>")
-        plotType <- "approved"
-      } else {
-        plotTitle <- gettext("Badge: <i>Not approved</i>")
-        plotType <- "not approved"
-      }
-
-      badge <- .auditCreateBadge(type = plotType)
-      resultBadge <- createJaspPlot(plot = badge, 
-                                    title = plotTitle, 
-                                    width = 150, 
-                                    height = 150)
-
-      resultBadge$position <- 2
-      badgeSection[["resultBadge"]] <- resultBadge
-
-    }
-
-    jaspResults[["badgeSection"]] <- badgeSection
-
-  }
-}
-
-.auditCreateBadge <- function(type){
-
-  center <- 1
-  radius <- 1
-  h <- radius
-  w <- sqrt(3)/2 * radius
-  m <- 1.02
-
-  if(type == "approved"){
-    fillA <- "#3CB371"
-  } else if(type == "not approved"){
-    fillA <- "#ff0000"
-  } else if(type == "annotated"){
-    fillA <- "#57A7E0"
-  }
-
-  hexd <- data.frame(x = 1 + c(rep(-sqrt(3)/2, 2), 0, rep(sqrt(3)/2, 2), 0), 
-                     y = 1 + c(0.5, -0.5, -1, -0.5, 0.5, 1))
-  hexd <- rbind(hexd, hexd[1, ])
-
-  plot <- ggplot2::ggplot() + 
-          ggplot2::geom_polygon(mapping = ggplot2::aes_(x = ~x, y = ~y), 
-                                data = hexd, size = 1.2, 
-                                color = "black", 
-                                fill = NA) + 
-          ggplot2::geom_polygon(mapping = ggplot2::aes_(x = ~x, y = ~y), 
-                                data = hexd,
-                                fill = fillA, 
-                                color = NA) + 
-          ggplot2::coord_fixed() +
-          ggplot2::scale_y_continuous(expand = c(0, 0), 
-                                      limits = c(center - h * m, center + h * m)) + 
-          ggplot2::scale_x_continuous(expand = c(0, 0), 
-                                      limits = c(center - w * m, center + w * m)) +
-          ggplot2::geom_text(data = data.frame(x = 1, y = 0.08, label = "JASP for Audit"), 
-                             mapping = ggplot2::aes(x = x, y = y, label = label), 
-                             size = 2, 
-                             color = "black",
-                             angle = 30, 
-                             hjust = 0)
-
-  if(type == "approved"){
-    plot <- plot + ggplot2::geom_segment(ggplot2::aes(x = 0.8, 
-                                                      xend = 1.6, 
-                                                      y = 0.6, 
-                                                      yend = 1.4), 
-                                        color = "black", 
-                                        size = 8) +
-                    ggplot2::geom_segment(ggplot2::aes(x = 0.9, 
-                                                       xend = 0.55, 
-                                                       y = 0.72, 
-                                                       yend = 1.07),
-                                          color = "black", 
-                                          size = 8)
-  } else if(type == "not approved"){
-    plot <- plot + ggplot2::geom_segment(ggplot2::aes(x = 0.6, 
-                                                      xend = 1.4, 
-                                                      y = 0.6, 
-                                                      yend = 1.4), 
-                                         color = "black", 
-                                         size = 8) +
-                    ggplot2::geom_segment(ggplot2::aes(x = 0.6, 
-                                                       xend = 1.4, 
-                                                       y = 1.4, 
-                                                       yend = 0.6), 
-                                          color = "black", 
-                                          size = 8)
-  } else if(type == "annotated"){
-    plot <- plot + ggplot2::geom_segment(ggplot2::aes(x = 1, 
-                                                      xend = 1, 
-                                                      y = 0.5, 
-                                                      yend = 1.1), 
-                                         color = "black", 
-                                         size = 7,
-                                         lineend = "round") +
-                    ggplot2::geom_segment(ggplot2::aes(x = 1, 
-                                                       xend = 1, 
-                                                       y = 1.5, 
-                                                       yend = 1.5), 
-                                          color = "black", 
-                                          size = 7,
-                                          lineend = "round")
-  }
-
-  myTheme <- ggplot2::theme(panel.background = ggplot2::element_rect(fill = "transparent", 
-                                                                     colour = NA), 
-                          plot.background = ggplot2::element_rect(fill = "transparent", 
-                                                                  colour = NA), 
-                          legend.key = ggplot2::element_rect(fill = "transparent", 
-                                                             colour = NA), 
-                          legend.background = ggplot2::element_rect(fill = "transparent", 
-                                                                    colour = NA),
-                          plot.margin = ggplot2::margin(b = -0.5, 
-                                                        l = 1.5, 
-                                                        r = 1.5, 
-                                                        unit = "lines"), 
-                          strip.text = ggplot2::element_blank(), 
-                          line = ggplot2::element_blank(), 
-                          text = ggplot2::element_blank(), 
-                          title = ggplot2::element_blank())
-  
-  plot <- plot + myTheme     
-
-  return(plot)
 }
 
 ################################################################################

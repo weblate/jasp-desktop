@@ -155,95 +155,106 @@ Form
 
 		Section
 		{
-			text:		qsTr("Advanced Options")
+			text: qsTr("Advanced Options")
 
 			GridLayout
 			{
-				columns:	3
+				columns: 3
 
 				RadioButtonGroup
 				{
-					id: 		ir
-					title: 		qsTr("Inherent Risk")
-					name: 		"IR"
-					enabled:	!pasteVariables.checked
+					id: 				expectedErrors
+					name: 			"expectedErrors"
+					title: 			qsTr("Tolerable Errors")
+					enabled:		!pasteVariables.checked
 
-					RadioButton { text: qsTr("High"); 		name: "High"; checked: true	}
-					RadioButton { text: qsTr("Medium");		name: "Medium"}
-					RadioButton { text: qsTr("Low"); 			name: "Low"}
-					RadioButton
+					RowLayout
 					{
-						id: 								irCustom
-						text:	 							qsTr("Custom")
-						name: 							"Custom"
-						childrenOnSameRow: 	true
+
+						RadioButton
+						{
+							id: 		expectedAbsolute
+							text: 	qsTr("Absolute")
+							name: 	"expectedAbsolute"
+						}
+
+						DoubleField
+						{
+							name: 					"expectedNumber"
+							enabled: 				expectedAbsolute.checked
+							defaultValue: 	0
+							min: 						0
+							decimals: 			2
+							visible: 				expectedAbsolute.checked
+							fieldWidth: 		60
+							label: 					materialityAbsolute.checked ? (euroValuta.checked ? "€" : (dollarValuta.checked ? "$" : otherValutaName.value)) : ""
+						}
+					}
+
+					RowLayout
+					{
+						RadioButton
+						{
+							id: 				expectedRelative
+							text: 			qsTr("Relative")
+							name: 			"expectedRelative"
+							checked: 		true
+						}
 
 						PercentField
 						{
-							name: 						"irCustom"
-							visible: 					irCustom.checked
-							decimals: 				2
-							defaultValue: 		100
-							min: 							25
+							name: 					"expectedPercentage"
+							enabled: 				expectedRelative.checked
+							decimals: 			2
+							defaultValue: 	0
+							visible: 				expectedRelative.checked
+							fieldWidth: 		40
 						}
 					}
 				}
 
 				RadioButtonGroup
 				{
-					id:			expectedErrors
-					name: 		"expectedErrors"
-					title: 		qsTr("Expected Errors")
-					enabled:	!pasteVariables.checked
+					id: 					planningModel
+					title: 				qsTr("Planning Distribution")
+					name: 				"planningModel"
+					enabled:			!pasteVariables.checked
 
-					RowLayout
+					RadioButton
 					{
-						enabled: 	monetaryVariable.count > 0
-
-						RadioButton { text: qsTr("Absolute"); name: "expectedAbsolute"; id: expectedAbsolute}
-
-						DoubleField
-						{
-							name: 			"expectedNumber"
-							enabled: 		expectedAbsolute.checked
-							defaultValue: 	0
-							min: 			0
-							max: 			1e10
-							decimals: 		2
-							visible: 		expectedAbsolute.checked
-							fieldWidth: 	60
-							label: 			euroValuta.checked ? "€" : (dollarValuta.checked ? "$" : otherValutaName.value)
-						}
+						id: 				binomial
+						text: 			qsTr("Binomial")
+						name: 			"binomial"
+						checked: 		true
 					}
 
-					RowLayout
+					RadioButton
 					{
-						RadioButton { text: qsTr("Relative") ; name: "expectedRelative"; id: expectedRelative; checked: true}
+						id: 				poisson
+						text: 			qsTr("Poisson")
+						name: 			"Poisson"
+					}
 
-						PercentField
-						{
-							name: 			"expectedPercentage"
-							enabled: 		expectedRelative.checked
-							decimals: 		3
-							defaultValue: 	0
-							visible: 		expectedRelative.checked
-							fieldWidth: 	40
-						}
+					RadioButton
+					{
+						id: 				hypergeometric
+						text: 			qsTr("Hypergeometric")
+						name: 			"hypergeometric"
 					}
 				}
 
 				GroupBox
 				{
-					title: 	qsTr("Explanatory Text")
+					title: qsTr("Explanatory Text")
 
 					RowLayout
 					{
 						CheckBox
 						{
-							id: 		explanatoryText
-							text: 		qsTr("Enable")
-							name: 		"explanatoryText"
-							checked: 	true
+							id: 					explanatoryText
+							text:	 				qsTr("Enable")
+							name: 				"explanatoryText"
+							checked: 			true
 						}
 
 						HelpButton
@@ -252,91 +263,150 @@ Form
 							toolTip: 			qsTr("Show explanatory text at each step of the analysis")
 						}
 					}
-
-					CheckBox
-					{
-						text:	 		qsTr("Report badges")
-						name: 		"reportBadges"
-						checked: 	false
-						visible: 	false
-					}
 				}
 
-				RadioButtonGroup
+				CheckBox 
 				{
-					id: 		cr
-					title: 		qsTr("Control Risk")
-					name: 		"CR"
-					enabled:	!pasteVariables.checked
+					id: 					auditRiskModel
+					text:	 				qsTr("Risk assessments (Audit Risk Model)")
+					name: 				"auditRiskModel"
+					checked: 			true	
+					enabled:			!pasteVariables.checked
+					Layout.columnSpan: 2
 
-					RadioButton { text: qsTr("High"); 		name: "High"; checked: true	}
-					RadioButton { text: qsTr("Medium"); 	name: "Medium"}
-					RadioButton { text: qsTr("Low"); 			name: "Low"}
-					RadioButton
-					{
-						id: 							crCustom
-						text:	 						qsTr("Custom")
-						name: 						"Custom"
-						childrenOnSameRow: true
+					RowLayout
+					{			
 
-						PercentField
+						RadioButtonGroup
 						{
-							name: 					"crCustom"
-							visible: 				crCustom.checked
-							decimals: 			2
-							defaultValue: 	100
-							min:						25
+							id: 					ir
+							title: 				qsTr("Inherent Risk")
+							name: 				"IR"
+							visible: 			auditRiskModel.checked
+
+							RadioButton
+							{
+								text: 			qsTr("High")
+								name: 			"High"
+								checked: 		true
+							}
+
+							RadioButton
+							{
+								text: 			qsTr("Medium")
+								name: 			"Medium"
+							}
+
+							RadioButton
+							{
+								text:	 			qsTr("Low")
+								name: 			"Low"
+							}
+
+							RadioButton
+							{
+								id: 								irCustom
+								text:	 							qsTr("Custom")
+								name: 							"Custom"
+								childrenOnSameRow: 	true
+
+								PercentField
+								{
+									name: 						"irCustom"
+									visible: 					irCustom.checked
+									decimals: 				2
+									defaultValue: 		100
+									min: 							25
+								}
+							}
+						}
+
+						RadioButtonGroup
+						{
+							id: 						cr
+							title: 					qsTr("Control Risk")
+							name: 					"CR"
+							visible: 				auditRiskModel.checked
+
+							RadioButton
+							{
+								text: 				qsTr("High")
+								name: 				"High"
+								checked: 			true
+							}
+
+							RadioButton
+							{
+								text: 				qsTr("Medium")
+								name: 				"Medium"
+							}
+
+							RadioButton
+							{
+								text: 				qsTr("Low")
+								name: 				"Low"
+							}
+
+							RadioButton
+							{
+								id: 							crCustom
+								text:	 						qsTr("Custom")
+								name: 						"Custom"
+								childrenOnSameRow: true
+
+								PercentField
+								{
+									name: 					"crCustom"
+									visible: 				crCustom.checked
+									decimals: 			2
+									defaultValue: 	100
+									min:						25
+								}
+							}
 						}
 					}
 				}
 
 				RadioButtonGroup
 				{
-					id: 		planningModel
-					title: 		qsTr("Planning Distribution")
-					name: 		"planningModel"
-					enabled:	!pasteVariables.checked
+					id: 					valuta
+					title: 				qsTr("Currency")
+					name: 				"valuta"
+					visible:			materialityAbsolute.checked
 
-					RadioButton 
-					{ 
-						text: qsTr("Binomial")
-						name: "binomial"
-						id: binomial		
-						checked: true 
+					RadioButton
+					{
+						id: 				euroValuta
+						text: 			qsTr("Euro (€)")
+						name: 			"euroValuta"
+						checked: 		true
 					}
 
-					RadioButton { 
-						text: qsTr("Poisson")        
-						name: "Poisson" 
-						id: poisson			
+					RadioButton
+					{
+						id: 				dollarValuta
+						text: 			qsTr("Dollar ($)")
+						name: 			"dollarValuta"
+						checked: 		false
 					}
 
-					RadioButton { 
-						text: qsTr("Hypergeometric") 
-						name: "hypergeometric" 
-						id: hypergeometric	
-					}
-				}
-
-				RadioButtonGroup
-				{
-					id: 		valuta
-					title: 		qsTr("Currency")
-					name: 		"valuta"
-					visible:	monetaryVariable.count > 0 || materialityAbsolute.checked
-
-					RadioButton 	{ text: qsTr("Euro (€)"); 	name: "euroValuta"; 	checked: true; 	id: euroValuta 		}
-					RadioButton 	{ text: qsTr("Dollar ($)"); name: "dollarValuta"; 	checked: false; id: dollarValuta	}
 					RowLayout
 					{
-						RadioButton	{ text:	qsTr("Other");		name: "otherValuta"; 	checked: false; id: otherValuta		}
+						RadioButton
+						{
+							id: 			otherValuta
+							text: 		qsTr("Other")
+							name: 		"otherValuta"
+							checked: 	false
+						}
+
 						TextField
 						{
-							id: 		otherValutaName
-							name: 		"otherValutaName"
-							fieldWidth: 100
-							enabled: 	otherValuta.checked
-							visible: 	otherValuta.checked
+							id: 					otherValutaName
+							name: 				"otherValutaName"
+							fieldWidth: 	100
+							enabled: 			otherValuta.checked
+							visible: 			otherValuta.checked
 						}
 					}
 				}

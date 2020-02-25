@@ -82,16 +82,6 @@ auditClassicalBenfordsLaw <- function(jaspResults, dataset, options, ...){
                                        jaspResults,
                                        ready,
                                        position = 3)
-  
-  # --- BADGES
-
-  # Provide the analysis badges
-  .auditBadgeSection(options,
-                     type = "benfordsLaw",
-                     stateContainer = benfordsLawContainer,
-                     jaspResults, 
-                     ready, 
-                     position = 4)
 
   # ---
 }

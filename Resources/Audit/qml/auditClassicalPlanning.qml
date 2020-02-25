@@ -133,56 +133,12 @@ Form {
 
 			RadioButtonGroup
 			{
-				id: 					ir
-				title: 				qsTr("Inherent Risk")
-				name: 				"IR"
-
-				RadioButton
-				{
-					text: 			qsTr("High")
-					name: 			"High"
-					checked: 		true
-				}
-
-				RadioButton
-				{
-					text: 			qsTr("Medium")
-					name: 			"Medium"
-				}
-
-				RadioButton
-				{
-					text:	 			qsTr("Low")
-					name: 			"Low"
-				}
-
-				RadioButton
-				{
-					id: 								irCustom
-					text:	 							qsTr("Custom")
-					name: 							"Custom"
-					childrenOnSameRow: 	true
-
-					PercentField
-					{
-						name: 						"irCustom"
-						visible: 					irCustom.checked
-						decimals: 				2
-						defaultValue: 		100
-						min: 							25
-					}
-				}
-			}
-
-			RadioButtonGroup
-			{
 				id: 				expectedErrors
 				name: 			"expectedErrors"
-				title: 			qsTr("Expected Errors")
+				title: 			qsTr("Tolerable Errors")
 
 				RowLayout
 				{
-					enabled: materialityAbsolute.checked
 
 					RadioButton
 					{
@@ -200,7 +156,7 @@ Form {
 						decimals: 			2
 						visible: 				expectedAbsolute.checked
 						fieldWidth: 		60
-						label: 					euroValuta.checked ? "€" : (dollarValuta.checked ? "$" : otherValutaName.value)
+						label: 					materialityAbsolute.checked ? (euroValuta.checked ? "€" : (dollarValuta.checked ? "$" : otherValutaName.value)) : ""
 					}
 				}
 
@@ -218,83 +174,10 @@ Form {
 					{
 						name: 					"expectedPercentage"
 						enabled: 				expectedRelative.checked
-						decimals: 			3
+						decimals: 			2
 						defaultValue: 	0
 						visible: 				expectedRelative.checked
 						fieldWidth: 		40
-					}
-				}
-			}
-
-			GroupBox
-			{
-				title: qsTr("Explanatory Text")
-
-				RowLayout
-				{
-					CheckBox
-					{
-						id: 					explanatoryText
-						text:	 				qsTr("Enable")
-						name: 				"explanatoryText"
-						checked: 			true
-					}
-
-					HelpButton
-					{
-						helpPage:			"Audit/explanatoryText"
-						toolTip: 			qsTr("Show explanatory text at each step of the analysis")
-					}
-				}
-
-				CheckBox
-				{
-					text:	 		qsTr("Report badges")
-					name: 		"reportBadges"
-					checked: 	false
-					visible: 	false
-				}
-			}
-
-			RadioButtonGroup
-			{
-				id: 						cr
-				title: 					qsTr("Control Risk")
-				name: 					"CR"
-
-				RadioButton
-				{
-					text: 				qsTr("High")
-					name: 				"High"
-					checked: 			true
-				}
-
-				RadioButton
-				{
-					text: 				qsTr("Medium")
-					name: 				"Medium"
-				}
-
-				RadioButton
-				{
-					text: 				qsTr("Low")
-					name: 				"Low"
-				}
-
-				RadioButton
-				{
-					id: 							crCustom
-					text:	 						qsTr("Custom")
-					name: 						"Custom"
-					childrenOnSameRow: true
-
-					PercentField
-					{
-						name: 					"crCustom"
-						visible: 				crCustom.checked
-						decimals: 			2
-						defaultValue: 	100
-						min:						25
 					}
 				}
 			}
@@ -325,6 +208,129 @@ Form {
 					id: 				hypergeometric
 					text: 			qsTr("Hypergeometric")
 					name: 			"hypergeometric"
+				}
+			}
+
+			GroupBox
+			{
+				title: qsTr("Explanatory Text")
+
+				RowLayout
+				{
+					CheckBox
+					{
+						id: 					explanatoryText
+						text:	 				qsTr("Enable")
+						name: 				"explanatoryText"
+						checked: 			true
+					}
+
+					HelpButton
+					{
+						helpPage:			"Audit/explanatoryText"
+						toolTip: 			qsTr("Show explanatory text at each step of the analysis")
+					}
+				}
+			}
+
+			CheckBox 
+			{
+				id: 					auditRiskModel
+				text:	 				qsTr("Risk assessments (Audit Risk Model)")
+				name: 				"auditRiskModel"
+				checked: 			true	
+				Layout.columnSpan: 2
+
+				RowLayout
+				{			
+
+					RadioButtonGroup
+					{
+						id: 					ir
+						title: 				qsTr("Inherent Risk")
+						name: 				"IR"
+						visible: 			auditRiskModel.checked
+
+						RadioButton
+						{
+							text: 			qsTr("High")
+							name: 			"High"
+							checked: 		true
+						}
+
+						RadioButton
+						{
+							text: 			qsTr("Medium")
+							name: 			"Medium"
+						}
+
+						RadioButton
+						{
+							text:	 			qsTr("Low")
+							name: 			"Low"
+						}
+
+						RadioButton
+						{
+							id: 								irCustom
+							text:	 							qsTr("Custom")
+							name: 							"Custom"
+							childrenOnSameRow: 	true
+
+							PercentField
+							{
+								name: 						"irCustom"
+								visible: 					irCustom.checked
+								decimals: 				2
+								defaultValue: 		100
+								min: 							25
+							}
+						}
+					}
+
+					RadioButtonGroup
+					{
+						id: 						cr
+						title: 					qsTr("Control Risk")
+						name: 					"CR"
+						visible: 				auditRiskModel.checked
+
+						RadioButton
+						{
+							text: 				qsTr("High")
+							name: 				"High"
+							checked: 			true
+						}
+
+						RadioButton
+						{
+							text: 				qsTr("Medium")
+							name: 				"Medium"
+						}
+
+						RadioButton
+						{
+							text: 				qsTr("Low")
+							name: 				"Low"
+						}
+
+						RadioButton
+						{
+							id: 							crCustom
+							text:	 						qsTr("Custom")
+							name: 						"Custom"
+							childrenOnSameRow: true
+
+							PercentField
+							{
+								name: 					"crCustom"
+								visible: 				crCustom.checked
+								decimals: 			2
+								defaultValue: 	100
+								min:						25
+							}
+						}
+					}
 				}
 			}
 
