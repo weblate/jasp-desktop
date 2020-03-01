@@ -270,7 +270,6 @@ Form
 					id: 					auditRiskModel
 					text:	 				qsTr("Risk assessments (Audit Risk Model)")
 					name: 				"auditRiskModel"
-					checked: 			true	
 					enabled:			!pasteVariables.checked
 					Layout.columnSpan: 2
 

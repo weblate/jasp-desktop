@@ -1148,72 +1148,21 @@ Form
 			title: 		qsTr("Advanced Options")
 			columns: 	1
 
-			GridLayout
+			RadioButtonGroup
 			{
-				columns: 2
+				title: 		qsTr("Area Under Posterior")
+				name: 		"areaUnderPosterior"
 
-				RadioButtonGroup
+				RadioButton
 				{
-					title: 		qsTr("Estimation Method")
-					name: 		"estimator"
-
-					RadioButton
-					{
-						id: 			betaBound
-						name: 		"betaBound"
-						text: 		qsTr("Beta")
-						visible: 	!regressionBound.visible && beta.checked
-					}
-
-					RadioButton
-					{
-						id: 			gammaBound
-						name: 		"gammaBound"
-						text: 		qsTr("Gamma")
-						visible: 	!regressionBound.visible && gamma.checked
-					}
-
-					RadioButton
-					{
-						id: 			betabinomialBound
-						name: 		"betabinomialBound"
-						text: 		qsTr("Beta-binomial")
-						visible: 	!regressionBound.visible && betaBinomial.checked
-					}
-
-					RadioButton
-					{
-						id: 		coxAndSnellBound
-						name: 		"coxAndSnellBound"
-						text: 		qsTr("Cox and Snell")
-						visible: 	musSampling.checked && variableTypeAuditValues.checked
-					}
-
-					RadioButton
-					{
-						id: 			regressionBound
-						name: 		"regressionBound"
-						text: 		qsTr("Regression")
-						visible: 	recordSampling.checked && variableTypeAuditValues.checked && evaluationChecked.checked
-					}
+					text: 	qsTr("Credible bound")
+					name: 	"displayCredibleBound"
 				}
 
-				RadioButtonGroup
+				RadioButton
 				{
-					title: 		qsTr("Area Under Posterior")
-					name: 		"areaUnderPosterior"
-
-					RadioButton
-					{
-						text: 	qsTr("Credible bound")
-						name: 	"displayCredibleBound"
-					}
-
-					RadioButton
-					{
-						text: 	qsTr("Credible interval")
-						name: 	"displayCredibleInterval"
-					}
+					text: 	qsTr("Credible interval")
+					name: 	"displayCredibleInterval"
 				}
 			}
 		}
@@ -1243,21 +1192,18 @@ Form
 						{
 							text: 		qsTr("Evidence ratio")
 							name: 		"evidenceRatio"
-							visible: 	!regressionBound.visible
 						}
 
 						CheckBox
 						{
 							text: qsTr("Bayes factor (BF\u208B\u208A)")
 							name: "bayesFactor"
-							visible: 	!regressionBound.visible
 						}
 					}
 
 					GroupBox
 					{
 						title: qsTr("Tables")
-						visible: !regressionBound.visible
 
 						CheckBox
 						{
@@ -1289,7 +1235,6 @@ Form
 						id: 							priorAndPosteriorPlot
 						text: 						qsTr("Prior and posterior")
 						name: 						"priorAndPosteriorPlot"
-						visible: 					!regressionBound.visible
 
 						PercentField
 						{
@@ -1297,7 +1242,6 @@ Form
 							text: 					qsTr("x-axis limit")
 							defaultValue: 	20
 							name: 					"priorAndPosteriorPlotLimit"
-							visible:				!regressionBound.visible
 						}
 
 						CheckBox
@@ -1305,7 +1249,6 @@ Form
 							id: 						priorAndPosteriorPlotExpectedPosterior
 							text: 					qsTr("Expected posterior")
 							name: 					"priorAndPosteriorPlotExpectedPosterior"
-							visible:				!regressionBound.visible
 						}
 
 						CheckBox
@@ -1314,7 +1257,6 @@ Form
 							text: 					qsTr("Additional info")
 							name: 					"priorAndPosteriorPlotAdditionalInfo"
 							checked: 				true
-							visible:				!regressionBound.visible
 
 							RadioButtonGroup 
 							{

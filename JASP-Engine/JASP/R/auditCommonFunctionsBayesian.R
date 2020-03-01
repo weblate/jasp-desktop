@@ -207,7 +207,7 @@
 
   priorEvidenceRatio <- priorH1 / priorH0
 
-  if(evaluationState[["method"]] == "poisson"){
+  if(planningOptions[["likelihood"]] == "poisson"){
 
     postH1 <- diff(pgamma(c(0, evaluationState[["materiality"]]), 
                           shape = 1 + evaluationState[["kPrior"]] + 
@@ -221,7 +221,7 @@
                           rate = evaluationState[["nPrior"]] + 
                                  evaluationState[["n"]]))
 
-  } else if(evaluationState[["method"]] == "binomial"){
+  } else if(planningOptions[["likelihood"]] == "binomial"){
 
     postH1 <- diff(pbeta(c(0, evaluationState[["materiality"]]), 
                     shape1 = 1 + evaluationState[["kPrior"]] + 
@@ -239,7 +239,7 @@
                                    evaluationState[["n"]] - 
                                    evaluationState[["t"]]))
 
-  } else if(evaluationState[["method"]] == "hypergeometric"){
+  } else if(planningOptions[["likelihood"]] == "hypergeometric"){
 
     postH1 <- sum(jfa:::.dBetaBinom(x = tolerableE, 
                                     N = evaluationState[["N"]] - 
@@ -262,16 +262,6 @@
                                                evaluationState[["kPrior"]] + 
                                                evaluationState[["n"]] - 
                                                evaluationState[["k"]]))
-
-  } else if(evaluationState[["method"]] == "coxsnell"){
-
-    pCoxAndSnellF <- ecdf(jfa:::.dCoxAndSnellF(seq(0, 1, length.out = 100000), 
-                                               df1 = evaluationState[["df1"]],
-                                               df2 = evaluationState[["df2"]],
-                                               multiplicationFactor = evaluationState[["multiplicationFactor"]]))
-    
-    postH1 <- pCoxAndSnellF(evaluationState[["materiality"]])
-    postH0 <- pCoxAndSnellF(1) - pCoxAndSnellF(evaluationState[["materiality"]])
 
   }
 
@@ -1069,7 +1059,7 @@
         evaluationContainer$getError()) 
       return()
 
-    xseq <- seq(0, options[["priorAndPosteriorPlotLimit"]], 0.0001)
+    xseq <- seq(0, options[["priorAndPosteriorPlotLimit"]], length.out = 1000)
 
     if(planningState[["likelihood"]] == "binomial"){
 
@@ -1090,10 +1080,10 @@
                                 type = rep(gettext("Expected\nposterior"), length(xseq)))
 
       postData <- data.frame(x = xseq, 
-                             y = dbeta(x = xseq, 
-                                       shape1 = 1 + evaluationState[["kPrior"]] +  
+                            y = dbeta(x = xseq, 
+                                      shape1 = 1 + evaluationState[["kPrior"]] +  
                                                 evaluationState[["t"]], 
-                                       shape2 = 1 + evaluationState[["nPrior"]] -
+                                      shape2 = 1 + evaluationState[["nPrior"]] -
                                                 evaluationState[["kPrior"]] + 
                                                 evaluationState[["n"]] - 
                                                 evaluationState[["t"]]),
@@ -1102,11 +1092,27 @@
       pdata <- data.frame(x = evaluationState[["materiality"]], 
                           y = dbeta(evaluationState[["materiality"]], 
                                     shape1 = 1 + evaluationState[["kPrior"]] +  
-                                             evaluationState[["t"]], 
+                                            evaluationState[["t"]], 
                                     shape2 = 1 + evaluationState[["nPrior"]] -
-                                             evaluationState[["kPrior"]] + 
-                                             evaluationState[["n"]] - 
-                                             evaluationState[["t"]]))
+                                            evaluationState[["kPrior"]] + 
+                                            evaluationState[["n"]] - 
+                                            evaluationState[["t"]]))
+
+      if(evaluationState[["method"]] == "wasem"){
+
+        postDataOver <- data.frame(x = xseq, 
+                              y = dbeta(x = xseq, 
+                                        shape1 = evaluationState[["alpha_over"]], 
+                                        shape2 = evaluationState[["beta_over"]]),
+                              type = rep(gettext("Overstatements"), length(xseq)))
+
+        postDataUnder <- data.frame(x = xseq, 
+                              y = dbeta(x = xseq, 
+                                        shape1 = evaluationState[["alpha_under"]], 
+                                        shape2 = evaluationState[["beta_under"]]),
+                              type = rep(gettext("Understatements"), length(xseq)))
+
+      }
 
     } else if(planningState[["likelihood"]] == "poisson"){
 
@@ -1138,7 +1144,23 @@
                                             evaluationState[["t"]], 
                                     rate = evaluationState[["nPrior"]] + 
                                            evaluationState[["n"]]))
-                                      
+
+       if(evaluationState[["method"]] == "wasem"){
+
+        postDataOver <- data.frame(x = xseq, 
+                              y = dgamma(x = xseq, 
+                                         shape = evaluationState[["alpha_over"]], 
+                                         rate = evaluationState[["beta_over"]]),
+                              type = rep(gettext("Overstatements"), length(xseq)))
+
+        postDataUnder <- data.frame(x = xseq, 
+                              y = dgamma(x = xseq, 
+                                         shape = evaluationState[["alpha_under"]], 
+                                         rate = evaluationState[["beta_under"]]),
+                              type = rep(gettext("Understatements"), length(xseq)))
+
+      }
+
     } else if(planningState[["likelihood"]] == "hypergeometric"){
 
       xseq <- 0:ceiling(options[["priorAndPosteriorPlotLimit"]] * planningOptions[["populationSize"]])
@@ -1195,25 +1217,6 @@
 
     }
 
-    if(evaluationState[["method"]] == "coxsnell"){
-
-      postData <- data.frame(x = xseq, 
-                             y = jfa:::.dCoxAndSnellF(xseq,
-                                  df1 = evaluationState[["df1"]],
-                                  df2 = evaluationState[["df2"]],
-                                  multiplicationFactor = evaluationState[["multiplicationFactor"]]
-                             ),
-                             type = rep(gettext("Posterior"), length(xseq)))
-
-      pdata <- data.frame(x = evaluationState[["materiality"]], 
-                             y = jfa:::.dCoxAndSnellF(evaluationState[["materiality"]],
-                                  df1 = evaluationState[["df1"]],
-                                  df2 = evaluationState[["df2"]],
-                                  multiplicationFactor = evaluationState[["multiplicationFactor"]]
-                             ))
-
-    }
-
     posteriorBound <- evaluationState[["confBound"]]
 
     if(options[["shadePosterior"]] == "shadePosteriorCredibleRegion"){
@@ -1222,15 +1225,26 @@
       pdata3 <- data.frame(x = c(0, 0), y = c(0, 0), l = c("1", "2"))
     }
 
-    plotData <- rbind(priorData, postData)
-    plotData$type <- factor(x = plotData$type, 
-                        levels = levels(plotData$type)[c(1,2)])
+    if(evaluationState[["method"]] != "wasem"){
+      plotData <- rbind(priorData, postData)
+      plotData$type <- factor(x = plotData$type, 
+                    levels = levels(plotData$type)[c(1,2)])
+    } else {
+      plotData <- rbind(priorData, postData, postDataOver, postDataUnder)
+      plotData$type <- factor(x = plotData$type, 
+                        levels = levels(plotData$type)[c(1, 2, 3, 4)])
+    }
 
     if(options[["priorAndPosteriorPlotExpectedPosterior"]]){
 
       plotData <- rbind(plotData, expPostData)
-      plotData$type <- factor(x = plotData$type, 
-                        levels = levels(plotData$type)[c(1,2, 3)])
+      if(evaluationState[["method"]] != "wasem"){
+        plotData$type <- factor(x = plotData$type, 
+                        levels = levels(plotData$type)[c(1, 2, 3)])
+      } else {
+        plotData$type <- factor(x = plotData$type, 
+                        levels = levels(plotData$type)[c(1, 2, 3, 4, 5)])
+      }
 
     }
 
@@ -1240,24 +1254,42 @@
     # Adjust legend
     if(options[["priorAndPosteriorPlotExpectedPosterior"]]){
 
-      scaleValues <- c("dashed", "solid", "dotted")
+      if(evaluationState[["method"]] != "wasem"){
+        scaleValues <- c("dashed", "solid", "dotted")
+        colValues <- c("black", "black", "black")
+      } else {
+        scaleValues <- c("dashed", "solid", "solid", "solid", "dotted")
+        colValues <- c("black", "black", rgb(178/255, 34/255, 34/255, 0.6), rgb(60/255, 179/255,113/255, 0.6), "black")
+      }
 
     } else {
 
-      scaleValues <- c("dashed", "solid")
+      if(evaluationState[["method"]] != "wasem"){
+        scaleValues <- c("dashed", "solid")
+        colValues <- c("black", "black")
+      } else {
+        scaleValues <- c("dashed", "solid", "solid", "solid")
+        colValues <- c("black", "black", rgb(178/255, 34/255, 34/255, 0.6), rgb(60/255, 179/255,113/255, 0.6))
+      }
+
     }
 
-    guide <- ggplot2::guide_legend(nrow = 1, 
-                                byrow = FALSE, 
-                                title = "", 
-                                order = 1)
+    guide <- ggplot2::guide_legend(ncol = 2, 
+                                   byrow = TRUE, 
+                                   title = "", 
+                                   order = 1, 
+                                   keyheight = 1)
 
     p <- ggplot2::ggplot(data = plotData, 
                          mapping = ggplot2::aes(x = x, y = y)) +
-          ggplot2::geom_line(mapping = ggplot2::aes(x = x, y = y, linetype = type), 
+          ggplot2::geom_line(mapping = ggplot2::aes(x = x, y = y, 
+                                                    linetype = type, 
+                                                    col = type), 
                              lwd = 1) +
           ggplot2::scale_linetype_manual(values = scaleValues, 
                                          guide = guide) +
+          ggplot2::scale_color_manual(values = colValues, 
+                                      guide = guide) +
           ggplot2::scale_y_continuous(name = gettext("Density"), 
                                       breaks = yBreaks, 
                                       labels = c("", ""), 
@@ -1331,44 +1363,7 @@
             functionLimits <- c(0, posteriorBound)
           }                                                                  
 
-        if(evaluationState[["method"]] == "coxsnell"){
-
-          if(options[["shadePosterior"]] == "shadePosteriorCredibleRegion"){
-
-            p <- p + ggplot2::stat_function(fun = jfa:::.dCoxAndSnellF, 
-                                    args = list(
-                                            df1 = evaluationState[["df1"]], 
-                                            df2 = evaluationState[["df2"]],
-                                            multiplicationFactor = evaluationState[["multiplicationFactor"]] 
-                                            ),
-                                    xlim = functionLimits,
-                                    geom = "area", 
-                                    fill = shadeColors)
-
-          } else if(options[["shadePosterior"]] == "shadePosteriorHypotheses"){
-
-            p <- p + ggplot2::stat_function(fun = jfa:::.dCoxAndSnellF, 
-                                    args = list(
-                                            df1 = evaluationState[["df1"]], 
-                                            df2 = evaluationState[["df2"]],
-                                            multiplicationFactor = evaluationState[["multiplicationFactor"]] 
-                                            ),
-                                    xlim = c(0, evaluationState[["materiality"]]),
-                                    geom = "area", 
-                                    fill = shadeColors[1]) +
-                      ggplot2::stat_function(fun = jfa:::.dCoxAndSnellF, 
-                                    args = list(
-                                            df1 = evaluationState[["df1"]], 
-                                            df2 = evaluationState[["df2"]],
-                                            multiplicationFactor = evaluationState[["multiplicationFactor"]] 
-                                            ),
-                                    xlim = c(evaluationState[["materiality"]], 1),
-                                    geom = "area", 
-                                    fill = shadeColors[2])
-
-          }
-
-        } else if(evaluationState[["method"]] == "binomial"){
+        if(planningOptions[["likelihood"]] == "binomial"){
 
           if(options[["shadePosterior"]] == "shadePosteriorCredibleRegion"){
 
@@ -1414,7 +1409,7 @@
 
           }
 
-        } else if(evaluationState[["method"]] == "poisson"){
+        } else if(planningOptions[["likelihood"]] == "poisson"){
 
           if(options[["shadePosterior"]] == "shadePosteriorCredibleRegion"){
 
@@ -1454,7 +1449,7 @@
 
           }
 
-        } else if(evaluationState[["method"]] == "hypergeometric"){
+        } else if(planningOptions[["likelihood"]] == "hypergeometric"){
 
           if(options[["shadePosterior"]] == "shadePosteriorCredibleRegion"){
 
@@ -1544,11 +1539,12 @@
 
   if(options[["explanatoryText"]]){
 
-    distribution <- base::switch(evaluationState[["method"]], 
+    distribution <- base::switch(planningOptions[["likelihood"]], 
                                  "poisson" = gettext("gamma"), 
                                  "binomial" = gettext("beta"), 
-                                 "hypergeometric" = gettext("beta-binomial"),
-                                 "coxsnell" = gettext("Cox and Snell"))
+                                 "hypergeometric" = gettext("beta-binomial"))
+    if(evaluationState[["method"]] == "wasem")
+      distribution <- gettextf("weighted %1$s", distribution)
 
     priorAndPosteriorPlotText <- createJaspHtml(gettextf("<b>Figure %1$i.</b> The prior and posterior probability distribution <b>(%2$s)</b> on the misstatement in the population. %3$s",
                                                         jaspResults[["figNumber"]]$object,
@@ -1739,17 +1735,6 @@
                                     evaluationState[["k"]], 3),
                               ")")   
 
-    } else if(evaluationState[["method"]] == "coxsnell"){
-
-      postBound <- round(evaluationState[["confBound"]], 6)
-
-      posteriorForm <- paste0(round(evaluationState[["multiplicationFactor"]], 5),
-                              " \u00D7 F(df1 = ",
-                              evaluationState[["df1"]],
-                              ", df2 = ",
-                              evaluationState[["df2"]],
-                              ")")
-      
     }
     
     if(evaluationState[["method"]] != "hypergeometric"){
@@ -1853,24 +1838,10 @@
                                                evaluationState[["k"]]) / 
                                   evaluationState[["N"]], 6)                                  
 
-    } else if(evaluationState[["method"]] == "coxsnell"){
+    } else if(evaluationState[["method"]] == "wasem"){
 
-      lowerBound <- round(evaluationState[["multiplicationFactor"]] * 
-                          qf(p = lowerBoundConfidence,
-                             df1 = evaluationState[["df1"]], 
-                             df2 = evaluationState[["df2"]]), 6)
-
-      upperBound <- round(evaluationState[["multiplicationFactor"]] * 
-                          qf(p = upperBoundConfidence,
-                             df1 = evaluationState[["df1"]], 
-                             df2 = evaluationState[["df2"]]), 6)
-      
-    } else if(evaluationState[["method"]] == "regression"){
-
-      lowerBound <- (evaluationState[["popBookvalue"]] - evaluationState[["lowerBound"]]) / 
-                     evaluationState[["popBookvalue"]]
-      upperBound <- (evaluationState[["popBookvalue"]] - evaluationState[["upperBound"]]) / 
-                     evaluationState[["popBookvalue"]]
+      lowerBound <- evaluationState[["lowerBound"]]
+      upperBound <- evaluationState[["upperBound"]]
 
     }
 
@@ -1879,79 +1850,79 @@
     return(results)
 }
 
-.auditBayesianRegression <- function(sample, 
-                                     confidence,
-                                     options,
-                                     planningOptions){
+.weightedAttributeEvaluationWASEM <- function(sample, 
+                                              confidence,
+                                              options,
+                                              planningOptions,
+                                              nPrior,
+                                              kPrior){
 
-  # Bayesian Linear Regression Using the BAS package
   sample <- stats::na.omit(sample)
-  
   sample <- sample[, c(.v(options[["monetaryVariable"]]), .v(options[["auditResult"]]))]
-  colnames(sample) <- c("bookValue", "auditValue")
-  formula <- auditValue ~ bookValue
   
-  if(all(sample[,1] == sample[,2])){
-    
-    betaStats <- c(1, 1, 1)
-    
-  } else {
-    
-    basResult <- BAS::bas.lm(formula, data = sample)
-    
-    if(options[["areaUnderPosterior"]] == "displayCredibleBound"){
-
-      basSummary <- BAS:::confint.coef.bas(coef(basResult), 
-                                           level = planningOptions[["confidence"]] - (1 - planningOptions[["confidence"]]))
-    
-    } else {
-
-      basSummary <- BAS:::confint.coef.bas(coef(basResult), 
-                                           level = planningOptions[["confidence"]])
-    
-    }
-    
-    betaStats <- as.numeric(basSummary[2, c(1,2, 3)]) 
-
-  }
-  
-  beta <- betaStats[3]
-  betaMin <- betaStats[1]
-  betaMax <- betaStats[2]
-  
-  n <- nrow(sample)
+  M <- planningOptions[["populationValue"]]
   N <- planningOptions[["populationSize"]]
-  taints <- (sample[["bookValue"]] - sample[["auditValue"]])/ sample[["bookValue"]]
-  k <- length(which(taints != 0))
-  t <- sum(taints)
-  
-  meanB <- mean(sample[["bookValue"]])
-  meanW <- mean(sample[["auditValue"]])
-  
-  corBW <- cor(sample[["bookValue"]], 
-               sample[["auditValue"]])
-  
-  sdW <- sd(sample[["auditValue"]])
+  n <- nrow(sample)
+  error <- sample[, 1] - sample[, 2]
+  taints <- error / sample[, 1]
+  ist_mean <- M / N
+  that_i <- error / ist_mean
+  k <- length(which(sample[, 1] != sample[, 2]))
 
-  pointEstimate <- N * meanW + 
-                    beta * (planningOptions[["populationValue"]] - 
-                            N * meanB)
-  
-  stDev <- sdW * sqrt(1 - corBW^2) * ( N / sqrt(n)) * sqrt( (N-n) / (N-1) )
-  lowerBound <- pointEstimate - betaMax * stDev
-  upperBound <- pointEstimate - betaMin * stDev
+  that_over <- sum(that_i[that_i > 0])
+  that_under <- abs(sum(that_i[that_i < 0]))
+
+  if(options[["prior"]] == "auditRiskModel"){
+    kPrior <- kPrior
+    nPrior <- nPrior
+  } else if(options[["prior"]] == "earlierSample"){
+    nPrior <- options[["earlierSampleN"]]
+    kPrior <- options[["earlierSampleK"]]
+  } else if(options[["prior"]] == "none"){
+    kPrior <- 0
+    nPrior <- 0
+  }
+
+  if(planningOptions[["likelihood"]] != "poisson"){
+    alpha_prior <- 1 + kPrior
+    beta_prior <- 1 + nPrior - kPrior
+    alpha_overstatement <- alpha_prior + that_over
+    beta_overstatement <- beta_prior + n - that_over
+    alpha_understatement <- alpha_prior + that_under
+    beta_understatement <- beta_prior + n - that_under
+  } else {
+    alpha_prior <- 1 + kPrior
+    beta_prior <- nPrior
+    alpha_overstatement <- alpha_prior + that_over
+    beta_overstatement <- beta_prior + n
+    alpha_understatement <- alpha_prior + that_under
+    beta_understatement <- beta_prior + n
+  }
+
+  bound <- qbeta(options[["confidence"]], alpha_prior + sum(taints), beta_prior + n - sum(taints))
+  bound_overstatement <- qbeta(options[["confidence"]], alpha_overstatement, beta_overstatement)
+  bound_understatement <- qbeta(options[["confidence"]], alpha_understatement, beta_understatement)
 
   results <- list()
   results[["n"]] <- as.numeric(n)
   results[["k"]] <- as.numeric(k)
-  results[["t"]] <- as.numeric(t)
-  results[["confidence"]] <- as.numeric(planningOptions[["confidence"]])
-  results[["method"]] <- "regression"
-  results[["popBookvalue"]] <- as.numeric(planningOptions[["populationValue"]])
-  results[["pointEstimate"]] <- as.numeric(pointEstimate)
-  results[["lowerBound"]] <- as.numeric(lowerBound)
-  results[["upperBound"]] <- as.numeric(upperBound)
+  results[["e"]] <- sum(error)
+  results[["t"]] <- as.numeric(sum(taints))
+  results[["kPrior"]] <- kPrior
+  results[["nPrior"]] <- nPrior
+  results[["alpha_over"]] <- alpha_overstatement
+  results[["beta_over"]] <- beta_overstatement
+  results[["alpha_under"]] <- alpha_understatement
+  results[["beta_under"]] <- beta_understatement
   results[["materiality"]] <- as.numeric(planningOptions[["materiality"]])
+  results[["confidence"]] <- as.numeric(planningOptions[["confidence"]])
+  results[["method"]] <- "wasem"
+  results[["confBound"]] <- as.numeric(bound)
+  results[["upperBound"]] <- as.numeric(bound_overstatement)
+  results[["lowerBound"]] <- as.numeric(-bound_understatement)
+  results[["conclusion"]] <- ifelse(results[["confBound"]] < results[["materiality"]], 
+                                    yes = "Approve population", 
+                                    no = "Do not approve population")
 
   return(results)
 }

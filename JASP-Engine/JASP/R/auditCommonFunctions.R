@@ -1076,13 +1076,15 @@
   expectedErrors <- ifelse(options[["expectedErrors"]] == "expectedRelative", 
                            yes = options[["expectedPercentage"]], 
                            no = options[["expectedNumber"]])
-  if(options[["materiality"]] == "materialityAbsolute")
+  if(options[["materiality"]] == "materialityAbsolute" && 
+      options[["expectedErrors"]] == "expectedAbsolute")
     expectedErrors <- expectedErrors / populationValue
 
   expectedErrorsLabel <- ifelse(options[["expectedErrors"]] == "expectedRelative", 
                                 yes = paste0(round(expectedErrors * 100, 2), "%"), 
                                 no = options[["expectedNumber"]])
-  if(options[["materiality"]] == "materialityAbsolute")
+  if(options[["materiality"]] == "materialityAbsolute" && 
+      options[["expectedErrors"]] == "expectedAbsolute")
     expectedErrorsLabel <- paste(valuta, expectedErrorsLabel)
   
   likelihood <- base::switch(options[["planningModel"]], 
@@ -1558,7 +1560,8 @@
   k <- base::switch(options[["expectedErrors"]], 
                     "expectedRelative" = planningState[["expectedSampleError"]], 
                     "expectedAbsolute" = options[["expectedNumber"]])
-  if(options[["materiality"]] == "materialityAbsolute")
+  if(options[["materiality"]] == "materialityAbsolute" &&
+      options[["expectedErrors"]] == "expectedAbsolute")
     k <- paste(planningOptions[["valuta"]], k)
   
   n <- planningState[["sampleSize"]]
@@ -2899,8 +2902,8 @@
                                 ir = inherentRisk, 
                                 cr = controlRisk)
         
-        nPrior <- NULL
-        kPrior <- NULL
+        nPrior <- prior[["nPrior"]]
+        kPrior <- prior[["kPrior"]]
 
       } else if(options[["prior"]] == "earlierSample"){
 
@@ -2911,8 +2914,8 @@
       } else if(options[["prior"]] == "none"){
 
         prior <- TRUE
-        nPrior <- NULL
-        kPrior <- NULL
+        nPrior <- 0
+        kPrior <- 0
 
       }
 
@@ -2924,6 +2927,7 @@
     if(options[["variableType"]] == "variableTypeCorrect"){
 
       method <- options[["planningModel"]]
+
       if(method == "Poisson")
         method <- "poisson"
 
@@ -2949,34 +2953,42 @@
 
     } else if(options[["variableType"]] == "variableTypeAuditValues"){
 
-      method <- base::switch(options[["estimator"]],
-                              "stringerBound"     = "stringer",
-                              "regressionBound"   = "regression",
-                              "directBound"       = "direct",
-                              "differenceBound"   = "difference",
-                              "ratioBound"        = "quotient",
-                              "coxAndSnellBound"  = "coxsnell",
-                              "betaBound"         = "binomial",
-                              "gammaBound"        = "poisson",
-                              "betaBinomialBound" = "hypergeometric")
+      if(type == "frequentist"){
 
-      if(method == "stringer" && options[["stringerBoundLtaAdjustment"]])
-        method <- "stringer-lta"
+        method <- base::switch(options[["estimator"]],
+                                "stringerBound"     = "stringer",
+                                "regressionBound"   = "regression",
+                                "directBound"       = "direct",
+                                "differenceBound"   = "difference",
+                                "ratioBound"        = "quotient")
 
-      # Adjust the confidence since jfa only returns a confidence interval
-      if(method %in% c("direct", "difference", "quotient", "regression")){
-        confidence <- confidence + ((1 - confidence) / 2)
+        if(method == "stringer" && options[["stringerBoundLtaAdjustment"]])
+          method <- "stringer-lta"
+
+        # Adjust the confidence since jfa only returns a confidence interval
+        if(method %in% c("direct", "difference", "quotient", "regression")){
+          confidence <- confidence + ((1 - confidence) / 2)
+        }
+
+      } else if(type == "bayesian"){
+
+        method <- base::switch(options[["planningModel"]],
+                                "binomial"          = "binomial",
+                                "Poisson"           = "poisson",
+                                "hypergeometric"    = "hypergeometric")
+
+        if(options[["materiality"]] == "materialityAbsolute" && options[["selectionType"]] == "recordSampling")
+          method <- "wasem"
+
       }
 
       # Bayesian regression is not implemented in jfa R package
-      if(type == "bayesian" && method == "regression"){
+      if(type == "bayesian" && method == "wasem"){
 
         result <- try({
       
-          .auditBayesianRegression(sample, 
-                                   confidence,
-                                   options,
-                                   planningOptions)
+          .weightedAttributeEvaluationWASEM(sample, confidence, options,
+                                            planningOptions, nPrior, kPrior)
 
         })
 
@@ -3009,16 +3021,15 @@
       return()
     }
 
-    if(options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
+    if(type == "frequentist"&& 
+      options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
 
       result[["confBound"]] <- (planningOptions[["populationValue"]] - result[["lowerBound"]]) / 
                                planningOptions[["populationValue"]]
                                
-      if(result[["confBound"]] < planningOptions[["materiality"]]){
-        result[["conclusion"]] <- "Approve population"
-      } else {
-        result[["conclusion"]] <- "Do not approve population"
-      }
+      result[["conclusion"]] <- ifelse(result[["confBound"]] < planningOptions[["materiality"]],
+                                       yes = "Approve population",
+                                       no = "Do not approve population")
     }
 
     evaluationContainer[["evaluationState"]] <- createJaspState(result)
@@ -3043,7 +3054,7 @@
 
       evaluationState <- evaluationContainer[["evaluationState"]]$object
 
-      if(options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
+      if(type == "frequentist"&& options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
 
         confidenceBound <- (planningOptions[["populationValue"]] - evaluationState[["lowerBound"]]) / planningOptions[["populationValue"]]
 
@@ -3183,6 +3194,9 @@
 
     detectionRisk <- auditRisk / inherentRisk / controlRisk
 
+    if(!options[["auditRiskModel"]])
+      detectionRisk <- 1 - options[["confidence"]]
+
     boundTitle <- gettextf("%1$s%% Confidence bound", round((1 - detectionRisk) * 100, 2))
 
     evaluationTable$addColumnInfo(name = 'bound',         
@@ -3244,7 +3258,8 @@
                                   title = gettextf("BF%1$s", "\u208B\u208A"),     
                                   type = 'string')
 
-  message <- base::switch(options[["estimator"]],
+  if(type == "frequentist"){
+    message <- base::switch(options[["estimator"]],
                           "poissonBound" = gettext("The confidence bound is calculated according to the <b>Poisson</b> distributon."),
                           "binomialBound" = gettext("The confidence bound is calculated according to the <b>binomial</b> distributon."),
                           "hyperBound" = gettext("The confidence bound is calculated according to the <b>hypergeometric</b> distribution."),
@@ -3252,15 +3267,29 @@
                           "regressionBound" = gettext("The confidence bound is calculated according to the <b>regression</b> method."),
                           "directBound" = gettext("The confidence bound is calculated according to the <b>direct</b> method."),
                           "differenceBound" = gettext("The confidence bound is calculated according to the <b>difference</b> method."),
-                          "ratioBound" = gettext("The confidence bound is calculated according to the <b>ratio</b> method."),
-                          "betaBound" = gettext("The credible bound is calculated according to the <b>beta</b> distribution and requires the assumption that the sample taints are interchangeable."),
-                          "gammaBound" = gettext("The credible bound is calculated according to the <b>gamma</b> distribution and requires the assumption that the sample taints are interchangeable."),
-                          "betabinomialBound" = gettext("The credible bound is calculated according to the <b>beta-binomial</b> distribution and requires the assumption that the sample taints are interchangeable."),
-                          "coxAndSnellBound" = gettext("The credible bound is calculated according to the <b>Cox and Snell</b> method and requires the assumption that the population taints are uniformly distributed."))
-
-  if(options[["estimator"]] == "stringerBound" &&
+                          "ratioBound" = gettext("The confidence bound is calculated according to the <b>ratio</b> method."))  
+    if(options[["estimator"]] == "stringerBound" &&
       options[["stringerBoundLtaAdjustment"]])
-  message <- gettext("The confidence bound is calculated according to the <b>Stringer</b> method with <b>LTA adjustment</b>.")
+    message <- gettext("The confidence bound is calculated according to the <b>Stringer</b> method with <b>LTA adjustment</b>.")
+  
+  } else if (type == "bayesian"){
+
+    method <- base::switch(options[["planningModel"]],
+                            "binomial"       = "binomial",
+                            "Poisson"        = "poisson",
+                            "hypergeometric" = "hypergeometric")
+
+    if(options[["materiality"]] == "materialityAbsolute" && 
+       options[["selectionType"]] == "recordSampling")
+      method <- "wasem"
+
+    message <- base::switch(method,
+                            "wasem" = gettext("The credible bound is calculated according to the <b>weighted attribute evaluation</b> method."),
+                            "binomial" = gettext("The credible bound is calculated according to the <b>beta</b> distribution and requires the assumption that the sample taints are interchangeable."),
+                            "poisson" = gettext("The credible bound is calculated according to the <b>gamma</b> distribution and requires the assumption that the sample taints are interchangeable."),
+                            "hypergeometric" = gettext("The credible bound is calculated according to the <b>beta-binomial</b> distribution and requires the assumption that the sample taints are interchangeable."))
+  
+  }
 
   evaluationTable$addFootnote(message = message, 
                               symbol = gettext("<i>Note.</i>"))
@@ -3303,7 +3332,8 @@
 
   if(options[["mostLikelyError"]]){
 
-    if(options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
+    if(type == "frequentist" && 
+        options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
 
       mle <- (planningOptions[["populationValue"]] - evaluationState[["pointEstimate"]]) / 
               planningOptions[["populationValue"]]
@@ -3322,30 +3352,21 @@
 
         } else {
 
-          if(evaluationState[["method"]] == "binomial")
+          if(planningOptions[["likelihood"]] == "binomial")
             mle <- (evaluationState[["kPrior"]] + evaluationState[["t"]] - 1) /
                     (evaluationState[["kPrior"]] + evaluationState[["t"]] +
                       evaluationState[["nPrior"]] + evaluationState[["n"]] -
                       evaluationState[["t"]] - 2)
 
-          if(evaluationState[["method"]] == "poisson")
+          if(planningOptions[["likelihood"]] == "poisson")
             mle <- (evaluationState[["kPrior"]] + evaluationState[["t"]] - 1) / 
                     (evaluationState[["nPrior"]] + evaluationState[["n"]])
 
-          if(evaluationState[["method"]] == "hypergeometric")
+          if(planningOptions[["likelihood"]] == "hypergeometric")
             mle <- (evaluationState[["kPrior"]] + evaluationState[["t"]]) / 
                     (evaluationState[["kPrior"]] + evaluationState[["t"]] +
                     evaluationState[["nPrior"]] + evaluationState[["n"]] -
                     evaluationState[["t"]])
-
-          if(evaluationState[["method"]] == "coxsnell")
-            mle <- evaluationState[["multiplicationFactor"]] * 
-                    ( (evaluationState[["df1"]] - 2)  / 
-                       evaluationState[["df1"]] 
-                    ) * 
-                    ( evaluationState[["df2"]] / 
-                      (evaluationState[["df2"]] + 2) 
-                    )
 
         }
       }
@@ -3443,8 +3464,9 @@
 
     materiality <- evaluationState[["materiality"]]
     bound <- evaluationState[["confBound"]]
-    
-    if(options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
+ 
+    if(type == "frequentist" && 
+       options[["estimator"]] %in% c("directBound", "differenceBound", "ratioBound", "regressionBound")){
 
       mle <- (planningOptions[["populationValue"]] - evaluationState[["pointEstimate"]]) / 
               planningOptions[["populationValue"]]
@@ -3463,30 +3485,21 @@
 
         } else {
 
-          if(evaluationState[["method"]] == "binomial")
+          if(planningOptions[["likelihood"]] == "binomial")
             mle <- (evaluationState[["kPrior"]] + evaluationState[["t"]] - 1) /
                     (evaluationState[["kPrior"]] + evaluationState[["t"]] +
                       evaluationState[["nPrior"]] + evaluationState[["n"]] -
                       evaluationState[["t"]] - 2)
 
-          if(evaluationState[["method"]] == "poisson")
+          if(planningOptions[["likelihood"]] == "poisson")
             mle <- (evaluationState[["kPrior"]] + evaluationState[["t"]] - 1) / 
                     (evaluationState[["nPrior"]] + evaluationState[["n"]])
 
-          if(evaluationState[["method"]] == "hypergeometric")
-            mle <- (evaluationState[["kPrior"]] + evaluationState[["t"]]) / 
-                    (evaluationState[["kPrior"]] + evaluationState[["t"]] +
+          if(planningOptions[["likelihood"]] == "hypergeometric")
+            mle <- (evaluationState[["kPrior"]] + evaluationState[["k"]]) / 
+                    (evaluationState[["kPrior"]] + evaluationState[["k"]] +
                     evaluationState[["nPrior"]] + evaluationState[["n"]] -
-                    evaluationState[["t"]])
-
-          if(evaluationState[["method"]] == "coxsnell")
-            mle <- evaluationState[["multiplicationFactor"]] * 
-                    ( (evaluationState[["df1"]] - 2)  / 
-                       evaluationState[["df1"]] 
-                    ) * 
-                    ( evaluationState[["df2"]] / 
-                      (evaluationState[["df2"]] + 2) 
-                    )
+                    evaluationState[["k"]])
 
         }
       }

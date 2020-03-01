@@ -237,8 +237,7 @@ Form {
 			{
 				id: 					auditRiskModel
 				text:	 				qsTr("Risk assessments (Audit Risk Model)")
-				name: 				"auditRiskModel"
-				checked: 			true	
+				name: 				"auditRiskModel"	
 				Layout.columnSpan: 2
 
 				RowLayout
