@@ -6,7 +6,11 @@ GENERATE_LANGUAGE_FILES = false
 #AM_I_BUILDBOT is set as a "qmake internal var" in the command line
 message("AM_I_BUILDBOT: '$$[AM_I_BUILDBOT]'")
 COPY_BUILDBOTNESS = $$[AM_I_BUILDBOT] # We need to copy it to make sure the equals function below actually works...
-!equals(COPY_BUILDBOTNESS, "") { GENERATE_LANGUAGE_FILES = true }
+!equals(COPY_BUILDBOTNESS, "") {
+  unix{  #Todo for Frans, make sure generating language files works on Windows
+    GENERATE_LANGUAGE_FILES = true
+  }
+}
 
 QTQUICK_COMPILER_SKIPPED_RESOURCES += html/html.qrc
 
@@ -172,7 +176,7 @@ win32 {
   isEmpty(GETTEXT_LOCATION): GETTEXT_LOCATION=$${_GIT_LOCATION}\usr\bin
 
   delres.commands  += $$quote(IF exist \"$$RESOURCES_DESTINATION\" (rd /s /q \"$$RESOURCES_DESTINATION\";) );
-  copyres.commands  +=  $$quote(cmd /c xcopy /S /I /Y $${RESOURCES_PATH} $${RESOURCES_DESTINATION})
+  copyres.commands +=  $$quote(cmd /c xcopy /S /I /Y $${RESOURCES_PATH} $${RESOURCES_DESTINATION})
 
   $$GENERATE_LANGUAGE_FILES {
     maketranslations.commands += $$quote(echo "Generating language Files") &&
