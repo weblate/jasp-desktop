@@ -4,7 +4,7 @@
 JASP_R_INTERFACE_TARGET = JASP-R-Interface
 
 JASP_R_INTERFACE_MAJOR_VERSION =  9  # Interface changes
-JASP_R_INTERFACE_MINOR_VERSION =  4  # Code changes
+JASP_R_INTERFACE_MINOR_VERSION =  5  # Code changes
 
 JASP_R_INTERFACE_NAME = $$JASP_R_INTERFACE_TARGET$$JASP_R_INTERFACE_MAJOR_VERSION'.'$$JASP_R_INTERFACE_MINOR_VERSION
 
@@ -111,6 +111,15 @@ macx {
   QMAKE_CXXFLAGS          += -Wno-c++11-extensions -Wno-c++11-long-long -Wno-c++11-extra-semi -stdlib=libc++ -Wno-deprecated-declarations
 
   CONFIG(debug): QMAKE_CXXFLAGS +=  -fstandalone-debug
+}
+
+#AM_I_BUILDBOT is set as a "qmake internal var" in the command line
+#message("AM_I_BUILDBOT: '$$[AM_I_BUILDBOT]'")
+COPY_BUILDBOTNESS = $$[AM_I_BUILDBOT] # We need to copy it to make sure the equals function below actually works...
+BUILDBOT_BUILD = false
+!equals(COPY_BUILDBOTNESS, "") {
+  BUILDBOT_BUILD = true
+  DEFINES += BUILDBOT_BUILD
 }
 
 #uncomment the following line to enable automatic encoding and decoding of columnNames. Be sure to recompile all necessary objects

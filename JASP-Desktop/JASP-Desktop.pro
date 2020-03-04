@@ -3,16 +3,13 @@ DEFINES += JASP_USES_QT_HERE
 
 GENERATE_LANGUAGE_FILES = false
 
-#AM_I_BUILDBOT is set as a "qmake internal var" in the command line
-message("AM_I_BUILDBOT: '$$[AM_I_BUILDBOT]'")
-COPY_BUILDBOTNESS = $$[AM_I_BUILDBOT] # We need to copy it to make sure the equals function below actually works...
-!equals(COPY_BUILDBOTNESS, "") {
-     GENERATE_LANGUAGE_FILES = true
-}
-
 QTQUICK_COMPILER_SKIPPED_RESOURCES += html/html.qrc
 
 include(../JASP.pri)
+
+$$BUILDBOT_BUILD {
+     GENERATE_LANGUAGE_FILES = true
+}
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets #We need this for the native dialogs
 

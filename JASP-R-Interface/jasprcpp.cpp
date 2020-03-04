@@ -1068,7 +1068,13 @@ SEXP jaspRCPP_RunSeparateR(SEXP code)
 #endif
 	};
 
-	static std::string R = bendSlashes("\""+ _R_HOME + "/bin/R\"");
+
+	static std::string R =
+#if defined(__APPLE__) && defined(BUILDBOT_BUILD)
+	"./RLink";
+#else
+			bendSlashes("\""+ _R_HOME + "/bin/R\"");
+#endif
 
 	std::string codestr = Rcpp::as<std::string>(code),
 				command = R + " --slave -e \"" + codestr + "\"";

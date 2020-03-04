@@ -83,6 +83,9 @@ cp -R R app/JASP.app/Contents/MacOS
 echo "Copying JAGS to executable folder"
 cp -R ../jasp-required-files/JAGS app/JASP.app/Contents/MacOS
 
+echo "Creating a special symlink to the R-executable"
+ln $APP_R_FRAMEWORK/Versions/$CURRENT_R_VERSION/Resources/bin/exec/R app/JASP.app/Contents/MacOS/RLink
+
 cd $APP_R_FRAMEWORK/Versions
 ln -s $CURRENT_R_VERSION Current
 cd Current
