@@ -28,6 +28,9 @@ openGrDevice <- function(...) {
 
 writeImageJaspResults <- function(width=320, height=320, plot, obj=TRUE, relativePathpng=NULL, ppi=300, backgroundColor="white", location=getImageLocation())
 {
+  print('writeImageJaspResults dev.list():')
+  print(dev.list())
+  
   # Set values from JASP'S Rcpp when available
   if (exists(".fromRCPP")) {
     location        <- .fromRCPP(".requestTempFileNameNative", "png")
