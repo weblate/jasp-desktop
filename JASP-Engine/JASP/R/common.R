@@ -2267,7 +2267,7 @@ openGrDevice <- function(...) {
   #if (jaspResultsCalledFromJasp())
   #  svglite::svglite(...)
   #else
-  grDevices::png(..., type = ifelse(Sys.info()["sysname"] == "Darwin", "quartz", "cairo"))
+  grDevices::png(..., type = "cairo") #ifelse(Sys.info()["sysname"] == "Darwin", "quartz", "cairo"))
 }
 
 .writeImage <- function(width=320, height=320, plot, obj = TRUE, relativePathpng = NULL) {
@@ -2316,7 +2316,7 @@ openGrDevice <- function(...) {
       height    = height,
       bg        = backgroundColor,
       res       = 72 * (ppi / 96),
-      type      = ifelse(Sys.info()["sysname"] == "Darwin", "quartz", "cairo"),
+      type      = "cairo", #ifelse(Sys.info()["sysname"] == "Darwin", "quartz", "cairo"),
       limitsize = FALSE # only necessary if users make the plot ginormous.
     )
 
@@ -2395,9 +2395,10 @@ saveImage <- function(plotName, format, height, width)
     # Even though OSX is usually cairo able, the cairo devices should not be used as plot fonts are not scaled well.
     # On the other hand, Windows should use a cairo (eps/pdf) device as the standard devices use a wrong R_HOME for some reason.
     # Consequently on Windows you will get encoding/font errors because the devices cannot find their resources.
-    if (capabilities("aqua"))
-      type <- "quartz"
-    else if (capabilities("cairo"))
+	#if (capabilities("aqua"))
+	 # type <- "quartz"
+	#else
+	if (capabilities("cairo"))
       type <- "cairo"
     else
       type <- "Xlib"

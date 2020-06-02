@@ -23,7 +23,7 @@ openGrDevice <- function(...) {
   #if (jaspResultsCalledFromJasp())
   #  svglite::svglite(...)
   #else
-  grDevices::png(..., type = ifelse(Sys.info()["sysname"] == "Darwin", "quartz", "cairo"))
+  grDevices::png(..., type = "cairo") #ifelse(Sys.info()["sysname"] == "Darwin", "quartz", "cairo"))
 }
 
 writeImageJaspResults <- function(width=320, height=320, plot, obj=TRUE, relativePathpng=NULL, ppi=300, backgroundColor="white", location=getImageLocation())
@@ -73,7 +73,7 @@ writeImageJaspResults <- function(width=320, height=320, plot, obj=TRUE, relativ
       height    = height,
       bg        = backgroundColor,
       res       = 72 * (ppi / 96),
-      type      = ifelse(Sys.info()["sysname"] == "Darwin", "quartz", "cairo"),
+	  type      = "cairo", #ifelse(Sys.info()["sysname"] == "Darwin", "quartz", "cairo"),
       limitsize = FALSE # only necessary if users make the plot ginormous.
     )
 
